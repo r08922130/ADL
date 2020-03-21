@@ -2,16 +2,16 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch
 class SequenceTaggle(nn.Module):
-    def __init__(self,input_size,hidden_size,output_size,device):
+    def __init__(self,input_size,hidden_size,output_size,device,layer=1):
         super().__init__()
         self.hidden_size = hidden_size
         self.device = device
-        self.encoder = Encoder(input_size,hidden_size,device)
+        self.encoder = Encoder(input_size,hidden_size,device,layer)
         self.linear = nn.Linear(hidden_size*2,output_size)
         self.softmax = nn.Softmax(dim=1)
-        self.hidden = self.encoder.initHidden()
-    def forward(self,input):
-        output,hidden = self.encoder(input,self.hidden)
+        
+    def forward(self,input,hidden):
+        output,hidden = self.encoder(input,hidden)
         output = self.linear(output)
         output = self.softmax(output)
         return output,hidden
@@ -34,5 +34,5 @@ class Encoder(nn.Module):
         output , hidden =self.gru(output,hidden)
         
         return output , hidden
-    def initHidden(self):
-        return torch.zeros(self.layer*2,self.batch_size,self.hidden_size,device=self.device)
+    def initHidden(self,batch):
+        return torch.zeros(self.layer*2,batch,self.hidden_size,device=self.device)

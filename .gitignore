@@ -3,3 +3,6 @@ HW1/glove.6B
 HW1/early.jsonl
 HW1/__pycache__
 HW1/.vscode
+HW1/early.jsonl
+HW1/glove*
+HW1/ckpt

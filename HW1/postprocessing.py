@@ -8,10 +8,17 @@ class Postprocessing:
         n = start
         for k in range(len(sentences)):
             result = []
+            max_l = -1
+            max_index = -1
             for i in range(len(intervals[k])-1):
                 isSummary = np.sum(sentences[k][intervals[k][i]:intervals[k][i+1]])
                 if isSummary > intervals[k][i+1]/2:
                     result += [i]
+                if max_l < isSummary/intervals[k][i+1]:
+                    max_l =isSummary/intervals[k][i+1]
+                    max_index = i
+            if len(result) == 0:
+                result+=[max_index]
             result_dict+=[{'id' : str(n+3000000),'predict_sentence_index':result }] 
             
             n+=1

@@ -1,6 +1,5 @@
 import json
 import nltk
-from nltk.tokenize import RegexpTokenizer
 from embedding import Embedding
 import numpy as np
 #id , summary ,text,sent_bounds,extractive_summary
@@ -16,7 +15,7 @@ class Preprocessing:
         return json_array
     def batch_data(self,batch_size=16,mode='train'):
         #mode : 'extractive' , 'abstractive'
-        e = Embedding("glove.6B/glove.6B.50d.txt")
+        e = Embedding("glove.6B.50d.txt")
         
         arr = self.load_data()
         batch_x = []
@@ -27,6 +26,7 @@ class Preprocessing:
         interval_s = []
         n = 0
         for data in arr:
+            #print(n)
             internals = data['sent_bounds']
             if mode != 'test':
                 ex_sum =data['extractive_summary']
@@ -76,14 +76,14 @@ class Preprocessing:
                     batch_x,batch_label = self.batch_PAD(e,batch_x,batch_label)
                 else:
                     batch_x,batch_label = self.batch_PAD(e,batch_x,None)
-                n % 800 == 0:
+                if n % 800 == 0:
                     print(n)
                     print(batch_x.shape)
                 batches_x +=[batch_x]
                 interval_s += [interval]
                 batch_x = []
                 interval = []
-                if mode == 'train' or mode == 'val':
+                if mode != 'test':
                     batches_labels += [batch_label]
                     batch_label = []
         
@@ -120,16 +120,6 @@ class Preprocessing:
         t = nltk.word_tokenize(sent)
         
         return [w.lower() for w in t if w not in " ,-."]
-#nltk.download('punkt')
-pre = Preprocessing("data/train.jsonl")
-data, label,interval = pre.batch_data(mode='train')
-#print(data[0].shape)
-#data = np.load("data/train_data.npy",allow_pickle=True)
-#label = np.load("data/train_label.npy",allow_pickle=True)
-np.save("data/train_data.npy",data)
-np.save("data/train_label.npy",label)
-np.save("data/train_interval.npy",interval)
-#print(label[0].shape)
-#print(data[0].shape)
-#print(data[0][0].shape)
-#print(data[0][0][0])
+#nltk.download('all-corpus')
+
+

@@ -13,9 +13,9 @@ class Preprocessing:
             for line in f:
                 json_array += [json.loads(line)]
         return json_array
-    def batch_data(self,batch_size=16,mode='train'):
+    def batch_data(self,batch_size=16,dim=50,mode='train'):
         #mode : 'extractive' , 'abstractive'
-        e = Embedding("glove.6B.50d.txt")
+        e = Embedding("glove.6B.{}d.txt".format(dim),dim=dim)
         
         arr = self.load_data()
         batch_x = []

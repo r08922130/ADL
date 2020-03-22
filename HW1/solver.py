@@ -10,9 +10,9 @@ class Solver:
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     def train(self,seq_model,batches,labels,valid_batches,valid_labels,valid_intervals,device,mode='extractive',
-                criterion=nn.BCEWithLogitsLoss(),epoch=10,encoder=None,decoder=None):
+                criterion=nn.BCEWithLogitsLoss(),epoch=10,lr=0.0001,encoder=None,decoder=None):
         total_loss=0
-        seq_opt=optim.RMSprop(seq_model.parameters(), lr=0.00001)
+        seq_opt=optim.RMSprop(seq_model.parameters(), lr=lr)
         if mode == 'extractive':
             for ep in range(epoch):
                 
@@ -39,7 +39,8 @@ class Solver:
         post = Postprocessing()
         n = 0
         result_dict = []
-        for i in range(len(batches)):
+        l = len(batches)
+        for i in range(l):
             
             data = torch.tensor(batches[i],device=device).float()
             data = data.permute(1,0,2)
@@ -47,8 +48,8 @@ class Solver:
             pred, _ = seq_model(data,hidden)
             pred = pred.view(pred.size()[0],pred.size()[1])
             pred = pred.permute(1,0)
-            if i == 0:
-                print(pred)
+            if i %500 == 0:
+                print(i/l)
             pred = pred > 0.5
             pred = pred.float()
             #print(pred.size())

@@ -13,6 +13,7 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     if arg[1] == '--train':
+        # cmd : python main.py --train 30
         if not os.path.isfile("data/train_data.npy"):
             pre = Preprocessing("data/train.jsonl")
             data, label,interval = pre.batch_data(mode='train')
@@ -58,15 +59,21 @@ if __name__ == "__main__":
             os.mkdir("ckpt")
         torch.save(mymodel.state_dict(), "ckpt/best.ckpt")
     else:
+        #python main.py --test test_file pred_file TA/pred
         test_file = arg[2]
-        if not os.path.isfile("data/test_data.npy") or arg[4] == 'TA':
+        if arg[4] == 'TA':
             pre = Preprocessing(test_file)
 
-            data, _,interval = pre.batch_data(mode='test')
-            np.save("data/test_data.npy",data)
-            np.save("data/test_interval.npy",interval)
-        test_data = np.load("data/test_data.npy",allow_pickle=True)
-        test_interval = np.load("data/test_interval.npy",allow_pickle=True)
+            test_data, _,test_interval = pre.batch_data(mode='test')
+        else:    
+            if not os.path.isfile("data/test_data.npy") :
+                pre = Preprocessing(test_file)
+
+                data, _,interval = pre.batch_data(mode='test')
+                np.save("data/test_data.npy",data)
+                np.save("data/test_interval.npy",interval)
+            test_data = np.load("data/test_data.npy",allow_pickle=True)
+            test_interval = np.load("data/test_interval.npy",allow_pickle=True)
         if len(test_data[-1]) == 0 :
             test_data = test_data[:-1]
             test_interval = test_interval[:-1]

@@ -31,8 +31,9 @@ class Solver:
 
                     seq_opt.step()
                     total_loss += loss.item()
-                    if i % 100 == 0:
-                        print(loss)
+                    if i % 500 == 0:
+                        print("{} epoch,{} batch, loss :".format(ep,i,loss.item()))
+                #validation
                     
     def test(self,seq_model,batches,interval,output_file,device,mode='test'):
         result = []
@@ -56,8 +57,9 @@ class Solver:
             result_dict,n = post.select_sentence(pred.cpu().numpy(),interval[i],result_dict,n)
             
             #print(pred.size())
-        print('convert result to jsonl ...........')
-        post.toJson(output_file,result_dict)
+        if mode == 'test':
+            print('convert result to jsonl ...........')
+            post.toJson(output_file,result_dict)
 
 
 

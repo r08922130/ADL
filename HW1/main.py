@@ -6,6 +6,7 @@ from preprocessing import Preprocessing
 from model import SequenceTaggle
 import os
 from solver import Solver
+import json
 if __name__ == "__main__":
     
     arg = sys.argv
@@ -20,7 +21,7 @@ if __name__ == "__main__":
         if not os.path.isfile("embedding.npy"):
             print("No File . Preprocessing!")
             pre = Preprocessing()
-            pre.batch_data(dim=300)
+            pre.batch_data(dim=300,modes=['train','valid','test'])
         
         train_data = np.load("data/train_data_{}.npy".format(dim),allow_pickle=True)
         print(train_data[0].shape)
@@ -67,13 +68,17 @@ if __name__ == "__main__":
         test_file = arg[2]
         dim = arg[5]
         dim = int(dim)
-        if not os.path.isfile("embedding.npy") :
+        if arg[4] == 'TA':
+            dic = json.load(open("dict.json"))
             pre = Preprocessing()
+            test_data, test_interval = pre.word_to_index(dic,test_file)
+        else:
+            if not os.path.isfile("embedding.npy") :
+                pre = Preprocessing()
+                pre.batch_data(dim=dim,modes=['train','valid','test'])
 
-            pre.batch_data(dim=dim)
-
-        test_data = np.load("data/test_data_{}.npy".format(dim),allow_pickle=True)
-        test_interval = np.load("data/test_interval_{}.npy".format(dim),allow_pickle=True)
+            test_data = np.load("data/test_data_{}.npy".format(dim),allow_pickle=True)
+            test_interval = np.load("data/test_interval_{}.npy".format(dim),allow_pickle=True)
         embedding = np.load("embedding.npy",allow_pickle=True)
         if len(test_data[-1]) == 0 :
             test_data = test_data[:-1]

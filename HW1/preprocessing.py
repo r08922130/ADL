@@ -15,7 +15,7 @@ class Preprocessing:
         return json_array
     def batch_data_no_Embedding(self,batch_size=16,dim=50,mode='train'):
         pass
-    def batch_data(self,batch_size=16,dim=50,modes=['train','test','valid']):
+    def batch_data(self,dic = None ,batch_size=16,dim=50,modes=['train','valid']):
         #mode : 'extractive' , 'abstractive'
         e = Embedding("glove.6B.{}d.txt".format(dim),dim=dim)
         myEmbedding = []
@@ -125,6 +125,7 @@ class Preprocessing:
 
         np.save("embedding.npy",np.asarray(myEmbedding))
         
+        json.dump(dict_in,open("dict.json","w"))
     def batch_PAD(self,dict_in, batch,label=None):
         max_l = 0
         #print(np.asarray(np.repeat([e.emb_dict['<PAD>']],3,axis=0),dtype="float32"))
@@ -146,6 +147,63 @@ class Preprocessing:
         t = nltk.word_tokenize(sent)
         
         return [w.lower() for w in t if w not in " ,-."]
+    def word_to_index(self,dic,file_name,batch_size=16,dim=300):
+        arr = self.load_data(file_name)
+        batch_x = []
+        batches_x = []
+        batch_label = []
+        batches_labels = []
+        interval = []
+        interval_s = []
+        n = 0
+        for data in arr:
+            #print(n)
+            internals = data['sent_bounds']
+            text = data['text']
+            sents = []
+            labels = []
+            now = 0
+            inter_start = [0]
+            for internal in internals:
+                t = text[internal[0]:internal[1]]
+                
+                t = self.tokenize(t)
+                t = ["<SOS>"] + t + ["<EOS>"]
+                l = len(t)
+                inter_start += [l+inter_start[-1]]
+                sents += t
+                now +=1
+
+            embed_sents = []
+            for word in sents:   
+                embed_sents += [dic[word]]    
+                
+            
+            batch_x += [embed_sents] 
+            interval += [inter_start]
+            n+=1
+            if n % batch_size == 0:
+                
+                batch_x,batch_label = self.batch_PAD(dic,batch_x,None)
+                if n % 800 == 0:
+                    print(n)
+                    print(batch_x.shape)
+                batches_x +=[batch_x]
+                interval_s += [interval]
+                batch_x = []
+                interval = []
+                
+        
+        
+        batch_x,batch_label = self.batch_PAD(dic,batch_x,None)
+        
+        print(n+1)
+        print(batch_x.shape)
+        batches_x +=[batch_x]
+        interval_s += [interval]
+        print(batches_x[0][0])
+        return np.asarray(batches_x), np.asarray(interval_s)
+
 #nltk.download('all-corpus')
 
 

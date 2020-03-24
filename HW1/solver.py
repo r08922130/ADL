@@ -21,39 +21,41 @@ class Solver:
                 bl = len(batches)
                 for i in range(bl):
                     seq_opt.zero_grad()
-                    data = torch.tensor(batches[i],device=device).float()
-                    data = data.permute(1,0,2)
+                    data = torch.LongTensor(batches[i]).to(device)
+                    data = data.permute(1,0)
                     
-                    target = torch.tensor(labels[i],device=device).float()
+                    target = torch.tensor(labels[i]).float().to(device)
                     #print(target.size())
                     target = target.permute(1,0)
-                    hidden = seq_model.encoder.initHidden(len(batches[i]))
+                    hidden = seq_model.encoder.initHidden(len(batches[i])).to(device)
                     pred, _ = seq_model(data,hidden)
                     loss = criterion(pred.view(pred.size()[0],pred.size()[1]), target) 
                     loss.backward()
 
                     seq_opt.step()
                     total_loss += loss.item()
-                    
+
                     if i % 100 == 0:
-                        print("Train epoch : {}, step : {} / {}, loss : {}".format(ep, i,bl,loss.item()))
+                        print("Train epoch : {}, step : {} / {}, loss : {:.2f}".format(ep, i,bl,loss.item()))
                 # validation
                 seq_model.eval()
                 bl = len(valid_batches)
                 for i in range(bl):
-                    data = torch.tensor(valid_batches[i],device=device).float()
+                    data = torch.LongTensor(valid_batches[i]).to(device)
                     data = data.permute(1,0,2)
-                    target = torch.tensor(valid_labels[i],device=device).float()
+                    target = torch.tensor(valid_labels[i]).float().to(device)
                     target = target.permute(1,0)
-                    hidden = seq_model.encoder.initHidden(len(valid_batches[i]))
+                    hidden = seq_model.encoder.initHidden(len(valid_batches[i])).to(device)
                     pred, _ = seq_model(data,hidden)
                     loss = criterion(pred.view(pred.size()[0],pred.size()[1]), target) 
-                    print("Valid epoch : {}, step : {} / {}, loss : {}".format(ep, i,bl,loss.item()))
+                    if i % 100 == 0:
+                        print("Valid epoch : {}, step : {} / {}, loss : {}".format(ep, i,bl,loss.item()))
                     if min_loss > loss.item():
                         min_loss = loss.item()
                         best_model = seq_model
                 if ep %10 == 0:
-
+                    torch.save(best_model.state_dict(), "ckpt/best.ckpt")
+            seq_model = best_model
                     
 
     def test(self,seq_model,batches,interval,output_file,device,mode='test'):
@@ -64,8 +66,8 @@ class Solver:
         l = len(batches)
         for i in range(l):
             
-            data = torch.tensor(batches[i],device=device).float()
-            data = data.permute(1,0,2)
+            data = torch.LongTensor(batches[i],device=device)
+            data = data.permute(1,0)
             hidden = seq_model.encoder.initHidden(len(batches[i]))
             pred, _ = seq_model(data,hidden)
             pred = pred.view(pred.size()[0],pred.size()[1])

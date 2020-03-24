@@ -9,14 +9,17 @@ class Solver:
         super().__init__()
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    def train(self,seq_model,batches,labels,valid_batches,valid_labels,valid_intervals,device,mode='extractive',
+    def train(self,seq_model,batches,labels,valid_batches,valid_labels,device,mode='extractive',
                 criterion=nn.BCEWithLogitsLoss(),epoch=10,lr=0.0001,encoder=None,decoder=None):
         total_loss=0
+        min_loss = 100
+        best_model = None
         seq_opt=optim.RMSprop(seq_model.parameters(), lr=lr)
         if mode == 'extractive':
             for ep in range(epoch):
-                
-                for i in range(len(batches)):
+                seq_model.train()
+                bl = len(batches)
+                for i in range(bl):
                     seq_opt.zero_grad()
                     data = torch.tensor(batches[i],device=device).float()
                     data = data.permute(1,0,2)
@@ -32,8 +35,25 @@ class Solver:
                     seq_opt.step()
                     total_loss += loss.item()
                     if i % 100 == 0:
-                        print(loss)
+                        print("Train epoch : {}, step : {} / {}, loss : {}".format(ep, i,bl,loss.item()))
+                # validation
+                seq_model.eval()
+                bl = len(valid_batches)
+                for i in range(bl):
+                    data = torch.tensor(valid_batches[i],device=device).float()
+                    data = data.permute(1,0,2)
+                    target = torch.tensor(valid_labels[i],device=device).float()
+                    target = target.permute(1,0)
+                    hidden = seq_model.encoder.initHidden(len(valid_batches[i]))
+                    pred, _ = seq_model(data,hidden)
+                    loss = criterion(pred.view(pred.size()[0],pred.size()[1]), target) 
+                    print("Valid epoch : {}, step : {} / {}, loss : {}".format(ep, i,bl,loss.item()))
+                    if min_loss > loss.item():
+                        min_loss = loss.item()
+                        best_model = seq_model
+                if ep %10 == 0:
                     
+
     def test(self,seq_model,batches,interval,output_file,device,mode='test'):
         result = []
         post = Postprocessing()

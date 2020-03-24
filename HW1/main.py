@@ -60,7 +60,7 @@ if __name__ == "__main__":
                 total += len(label[:train_interval[i][j][-1]])
         criterion =nn.BCEWithLogitsLoss(pos_weight=torch.Tensor([(total-pos)/pos])).to(device)
         mymodel = SequenceTaggle(train_data[0].shape[-1],256,1,device=device,layer=3).to(device)
-        solver.train(mymodel,train_data,train_label,valid_data,valid_label,valid_interval,criterion=criterion,device=device,epoch=int(arg[3]))
+        solver.train(mymodel,train_data,train_label,valid_data,valid_label,criterion=criterion,device=device,epoch=int(arg[3]))
         if not os.path.exists("ckpt"):
             os.mkdir("ckpt")
         torch.save(mymodel.state_dict(), "ckpt/best.ckpt")

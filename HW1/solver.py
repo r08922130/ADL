@@ -34,6 +34,7 @@ class Solver:
 
                     seq_opt.step()
                     total_loss += loss.item()
+                    
                     if i % 100 == 0:
                         print("Train epoch : {}, step : {} / {}, loss : {}".format(ep, i,bl,loss.item()))
                 # validation
@@ -52,6 +53,7 @@ class Solver:
                         min_loss = loss.item()
                         best_model = seq_model
                 if ep %10 == 0:
+
                     
 
     def test(self,seq_model,batches,interval,output_file,device,mode='test'):
@@ -76,8 +78,9 @@ class Solver:
             result_dict,n = post.select_sentence(pred.cpu().numpy(),interval[i],result_dict,n)
             
             #print(pred.size())
-        print('convert result to jsonl ...........')
-        post.toJson(output_file,result_dict)
+        if mode == 'test':
+            print('convert result to jsonl ...........')
+            post.toJson(output_file,result_dict)
 
 
 

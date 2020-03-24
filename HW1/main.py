@@ -89,7 +89,10 @@ if __name__ == "__main__":
         print(test_data[0].shape[-1])
         mymodel = SequenceTaggle(test_data[0].shape[-1],256,1,device=device,layer=3).to(device)
         if os.path.isfile("ckpt/best.ckpt"):
-            mymodel.load_state_dict(torch.load("ckpt/best.ckpt"))
+            if torch.cuda.is_available():
+                mymodel.load_state_dict(torch.load("ckpt/best.ckpt"))
+            else:
+                mymodel.load_state_dict(torch.load("ckpt/best.ckpt",map_location= device))
         solver.test(mymodel,test_data,test_interval,arg[3],device=device,mode='test')
 
         

@@ -1,1 +1,1 @@
-python main.py --test $1 $2 TA 100
+python main.py --test $1 $2 TA 50

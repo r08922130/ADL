@@ -11,8 +11,8 @@ class Solver:
 
     def train(self,seq_model,batches,labels,valid_batches,valid_labels,device,mode='extractive',
                 criterion=nn.BCEWithLogitsLoss(),epoch=10,lr=0.0001,encoder=None,decoder=None):
-        total_loss=0
-        min_loss = 100
+        
+        min_loss = 100000000
         best_model = None
         seq_opt=optim.RMSprop(seq_model.parameters(), lr=lr)
         if mode == 'extractive':
@@ -33,26 +33,28 @@ class Solver:
                     loss.backward()
 
                     seq_opt.step()
-                    total_loss += loss.item()
+                    
 
                     if i % 100 == 0:
                         print("Train epoch : {}, step : {} / {}, loss : {:.2f}".format(ep, i,bl,loss.item()))
                 # validation
                 seq_model.eval()
                 bl = len(valid_batches)
+                total_loss=0
                 for i in range(bl):
                     data = torch.LongTensor(valid_batches[i]).to(device)
-                    data = data.permute(1,0,2)
+                    data = data.permute(1,0)
                     target = torch.tensor(valid_labels[i]).float().to(device)
                     target = target.permute(1,0)
                     hidden = seq_model.encoder.initHidden(len(valid_batches[i])).to(device)
                     pred, _ = seq_model(data,hidden)
                     loss = criterion(pred.view(pred.size()[0],pred.size()[1]), target) 
+                    total_loss += loss.item()
                     if i % 100 == 0:
                         print("Valid epoch : {}, step : {} / {}, loss : {}".format(ep, i,bl,loss.item()))
-                    if min_loss > loss.item():
-                        min_loss = loss.item()
-                        best_model = seq_model
+                if min_loss > total_loss:
+                    min_loss =total_loss
+                    best_model = seq_model
                 if ep %10 == 0:
                     torch.save(best_model.state_dict(), "ckpt/best.ckpt")
             seq_model = best_model

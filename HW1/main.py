@@ -52,8 +52,8 @@ if __name__ == "__main__":
         total = 0
         for i,batch in enumerate(train_label):
             for j,label in enumerate(batch):
-                pos += sum(label[:train_interval[i][j][-1]])
-                total += len(label[:train_interval[i][j][-1]])
+                pos += 1
+                total += len(train_interval)-1
         criterion =nn.BCEWithLogitsLoss(pos_weight=torch.Tensor([(total-pos)/pos])).to(device)
         mymodel = SequenceTaggle(embedding.shape[0],embedding.shape[1],256,1,layer=3).to(device)
         mymodel.embedding.from_pretrained(torch.FloatTensor(embedding))

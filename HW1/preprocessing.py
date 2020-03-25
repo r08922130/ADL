@@ -13,8 +13,7 @@ class Preprocessing:
             for line in f:
                 json_array += [json.loads(line)]
         return json_array
-    def batch_data_no_Embedding(self,batch_size=16,dim=50,mode='train'):
-        pass
+    
     def batch_data(self,dic = None ,batch_size=16,dim=50,modes=['train','valid']):
         #mode : 'extractive' , 'abstractive'
         e = Embedding("glove.6B.{}d.txt".format(dim),dim=dim)
@@ -57,7 +56,8 @@ class Preprocessing:
                         if now != ex_sum:
                             labels += [0] * l
                         else :
-                            labels += [1] * l
+                            labels += [0] * (l-1)
+                            labels+= [1]
                     inter_start += [l+inter_start[-1]]
                     sents += t
                     now +=1

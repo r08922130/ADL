@@ -50,10 +50,10 @@ class Solver:
                     data = data.permute(1,0)
                     target = torch.tensor(valid_labels[i]).float().to(device)
                     target = target.permute(1,0)
-                    data = data*target
+                    
                     hidden = seq_model.encoder.initHidden(len(valid_batches[i])).to(device)
                     pred, _ = seq_model(data,hidden)
-                    loss = criterion(pred.view(pred.size()[0],pred.size()[1]), target) 
+                    loss = criterion(pred.view(pred.size()[0],pred.size()[1])*target, target) 
                     total_loss += loss.item()
                     if i % 100 == 0:
                         print("Valid epoch : {}, step : {} / {}, loss : {}".format(ep, i,bl,loss.item()))

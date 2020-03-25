@@ -34,7 +34,7 @@ class Solver:
                     hidden = seq_model.encoder.initHidden(len(batches[i])).to(device)
                     pred, _ = seq_model(data,hidden,m)
 
-                    loss = criterion(pred, target) 
+                    loss = criterion(pred.view(pred.size()[0],pred.size()[1])*m, target) 
                     
                     loss.backward()
 
@@ -58,7 +58,7 @@ class Solver:
                     m = m.permute(1,0)
                     hidden = seq_model.encoder.initHidden(len(valid_batches[i])).to(device)
                     pred, _ = seq_model(data,hidden,m)
-                    loss = criterion(pred, target) 
+                    loss = criterion(pred.view(pred.size()[0],pred.size()[1]), target) 
                     total_loss += loss.item()
                     if i % 100 == 0:
                         print("Valid epoch : {}, step : {} / {}, loss : {}".format(ep, i,bl,loss.item()))

@@ -11,12 +11,12 @@ class SequenceTaggle(nn.Module):
         self.linear = nn.Linear(hidden_size*2,output_size)
         self.softmax = nn.Softmax(dim=1)
         
-    def forward(self,input,hidden,m):
+    def forward(self,input,hidden):
         output = self.embedding(input)
         output,hidden = self.encoder(output,hidden)
         output = self.linear(output)
         output = self.softmax(output)
-        return output.view(output.size()[0],output.size()[1])*m,hidden
+        return output,hidden
 
         
 

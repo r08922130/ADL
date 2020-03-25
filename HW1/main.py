@@ -27,8 +27,8 @@ if __name__ == "__main__":
         print(train_data[0].shape)
         print(train_data[0][0])
         train_label = np.load("data/train_label_{}.npy".format(dim),allow_pickle=True)
-        print(train_label[0].shape)
-        print(train_label[0][0])
+        #print(train_label[0].shape)
+        #print(train_label[0][0])
         train_interval = np.load("data/train_interval_{}.npy".format(dim),allow_pickle=True)
         valid_data = np.load("data/valid_data_{}.npy".format(dim),allow_pickle=True)
         valid_label = np.load("data/valid_label_{}.npy".format(dim),allow_pickle=True)
@@ -50,20 +50,26 @@ if __name__ == "__main__":
         
         pos = 0
         total = 0
-        mul_train = np.copy(train_label)
+        
+        mul_train = []
         for i,batch in enumerate(train_label):
+            mul_train += [ batch.copy()]
             for j,label in enumerate(batch):
                 pos += 1
                 total += len(train_interval[i][j])-1
                 for k in train_interval[i][j][1:]:
                     
                     mul_train[i][j][k-1] = 1
-        mul_val = np.copy(valid_label)
+        
+        mul_val = []
         for i,batch in enumerate(valid_label):
+            mul_val += [ batch.copy()]
             for j,label in enumerate(batch):
                 
                 for k in valid_interval[i][j][1:]:
                     mul_val[i][j][k-1] = 1
+        
+         
         criterion =nn.BCEWithLogitsLoss(pos_weight=torch.Tensor([(total-pos)/pos])).to(device)
         mymodel = SequenceTaggle(embedding.shape[0],embedding.shape[1],256,1,layer=3).to(device)
         mymodel.embedding.from_pretrained(torch.FloatTensor(embedding))

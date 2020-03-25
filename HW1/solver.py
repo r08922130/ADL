@@ -28,7 +28,7 @@ class Solver:
                     #print(target.size())
                     target = target.permute(1,0)
                     
-                    m = torch.tensor(mul[i]).float().to(device)
+                    m = torch.tensor(mul[i],requires_grad=False).float().to(device)
                     m = m.permute(1,0)
                     #print(m.size())
                     hidden = seq_model.encoder.initHidden(len(batches[i])).to(device)
@@ -43,7 +43,7 @@ class Solver:
 
                     if i % 100 == 0:
                         #print(data)
-                        print("Train epoch : {}, step : {} / {}, loss : {:.2f}".format(ep, i,bl,loss.item()))
+                        print("Train epoch : {}, step : {} / {}, loss : {}".format(ep, i,bl,loss.item()))
                 # validation
                 seq_model.eval()
                 bl = len(valid_batches)
@@ -78,9 +78,9 @@ class Solver:
         l = len(batches)
         for i in range(l):
             
-            data = torch.LongTensor(batches[i],device=device)
+            data = torch.LongTensor(batches[i]).to(device)
             data = data.permute(1,0)
-            hidden = seq_model.encoder.initHidden(len(batches[i]))
+            hidden = seq_model.encoder.initHidden(len(batches[i])).to(device)
             pred, _ = seq_model(data,hidden)
             pred = pred.view(pred.size()[0],pred.size()[1])
             pred = pred.permute(1,0)

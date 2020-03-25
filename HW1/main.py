@@ -54,14 +54,15 @@ if __name__ == "__main__":
         for i,batch in enumerate(train_label):
             for j,label in enumerate(batch):
                 pos += 1
-                total += len(train_interval)-1
-                for k in train_interval[1:]:
+                total += len(train_interval[i][j])-1
+                for k in train_interval[i][j][1:]:
+                    
                     mul_train[i][j][k-1] = 1
         mul_val = np.copy(valid_label)
         for i,batch in enumerate(valid_label):
             for j,label in enumerate(batch):
                 
-                for k in valid_interval[1:]:
+                for k in valid_interval[i][j][1:]:
                     mul_val[i][j][k-1] = 1
         criterion =nn.BCEWithLogitsLoss(pos_weight=torch.Tensor([(total-pos)/pos])).to(device)
         mymodel = SequenceTaggle(embedding.shape[0],embedding.shape[1],256,1,layer=3).to(device)

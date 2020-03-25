@@ -39,7 +39,7 @@ class Solver:
                     
 
                     if i % 100 == 0:
-                        print(data)
+                        #print(data)
                         print("Train epoch : {}, step : {} / {}, loss : {:.2f}".format(ep, i,bl,loss.item()))
                 # validation
                 seq_model.eval()

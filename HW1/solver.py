@@ -9,7 +9,7 @@ class Solver:
         super().__init__()
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    def train(self,seq_model,batches,labels,valid_batches,valid_labels,device,mode='extractive',
+    def train(self,seq_model,batches,labels,mul,valid_batches,valid_labels,val_mul,device,mode='extractive',
                 criterion=nn.BCEWithLogitsLoss(),epoch=10,lr=0.0001,encoder=None,decoder=None):
         
         min_loss = 100000000
@@ -27,12 +27,13 @@ class Solver:
                     target = torch.tensor(labels[i]).float().to(device)
                     #print(target.size())
                     target = target.permute(1,0)
-                    
+                    m = torch.tensor(mul[i]).float().to(device)
+                    m = target.permute(1,0)
                     hidden = seq_model.encoder.initHidden(len(batches[i])).to(device)
                     pred, _ = seq_model(data,hidden)
                     
 
-                    loss = criterion(pred.view(pred.size()[0],pred.size()[1])*target, target) 
+                    loss = criterion(pred.view(pred.size()[0],pred.size()[1])*m, target) 
                     loss.backward()
 
                     seq_opt.step()
@@ -50,10 +51,11 @@ class Solver:
                     data = data.permute(1,0)
                     target = torch.tensor(valid_labels[i]).float().to(device)
                     target = target.permute(1,0)
-                    
+                    m = torch.tensor(val_mul[i]).float().to(device)
+                    m = target.permute(1,0)
                     hidden = seq_model.encoder.initHidden(len(valid_batches[i])).to(device)
                     pred, _ = seq_model(data,hidden)
-                    loss = criterion(pred.view(pred.size()[0],pred.size()[1])*target, target) 
+                    loss = criterion(pred.view(pred.size()[0],pred.size()[1])*m, target) 
                     total_loss += loss.item()
                     if i % 100 == 0:
                         print("Valid epoch : {}, step : {} / {}, loss : {}".format(ep, i,bl,loss.item()))

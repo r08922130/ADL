@@ -50,10 +50,19 @@ if __name__ == "__main__":
         
         pos = 0
         total = 0
+        mul_train = np.copy(train_label)
         for i,batch in enumerate(train_label):
             for j,label in enumerate(batch):
                 pos += 1
                 total += len(train_interval)-1
+                for k in train_interval[1:]:
+                    mul[i][j][k-1] = 1
+        mul_val = np.copy(valid_label)
+        for i,batch in enumerate(valid_label):
+            for j,label in enumerate(batch):
+                
+                for k in valid_interval[1:]:
+                    mul_val[i][j][k-1] = 1
         criterion =nn.BCEWithLogitsLoss(pos_weight=torch.Tensor([(total-pos)/pos])).to(device)
         mymodel = SequenceTaggle(embedding.shape[0],embedding.shape[1],256,1,layer=3).to(device)
         mymodel.embedding.from_pretrained(torch.FloatTensor(embedding))

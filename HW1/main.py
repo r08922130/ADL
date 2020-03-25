@@ -56,7 +56,7 @@ if __name__ == "__main__":
                 pos += 1
                 total += len(train_interval)-1
                 for k in train_interval[1:]:
-                    mul[i][j][k-1] = 1
+                    mul_train[i][j][k-1] = 1
         mul_val = np.copy(valid_label)
         for i,batch in enumerate(valid_label):
             for j,label in enumerate(batch):
@@ -66,7 +66,7 @@ if __name__ == "__main__":
         criterion =nn.BCEWithLogitsLoss(pos_weight=torch.Tensor([(total-pos)/pos])).to(device)
         mymodel = SequenceTaggle(embedding.shape[0],embedding.shape[1],256,1,layer=3).to(device)
         mymodel.embedding.from_pretrained(torch.FloatTensor(embedding))
-        solver.train(mymodel,train_data,train_label,valid_data,valid_label,criterion=criterion,device=device,epoch=int(arg[3]))
+        solver.train(mymodel,train_data,train_label,mul_train,valid_data,valid_label,mul_val,criterion=criterion,device=device,epoch=int(arg[3]))
         if not os.path.exists("ckpt"):
             os.mkdir("ckpt")
         torch.save(mymodel.state_dict(), "ckpt/best.ckpt")

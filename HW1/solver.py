@@ -36,6 +36,8 @@ class Solver:
                     
                     pred = pred.view(pred.size()[0],pred.size()[1])*m
                     loss = criterion(pred, target) 
+
+                    
                     loss.backward()
                     torch.nn.utils.clip_grad_norm_(seq_model.parameters(),10)
                     seq_opt.step()
@@ -60,6 +62,7 @@ class Solver:
                     m = m.permute(1,0)
                     pred, _ = seq_model(data)
                     loss = criterion(pred.view(pred.size()[0],pred.size()[1])*m, target) 
+
                     total_loss += loss.item()
                     if i % 100 == 0:
                         print("Valid epoch : {}, step : {} / {}, loss : {}".format(ep, i,bl,loss.item()))

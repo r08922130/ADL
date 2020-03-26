@@ -110,6 +110,12 @@ if __name__ == "__main__":
                 mymodel.load_state_dict(torch.load("ckpt/best.ckpt"))
             else:
                 mymodel.load_state_dict(torch.load("ckpt/best.ckpt",map_location= device))
+        elif os.path.isfile("best.ckpt"):
+            if torch.cuda.is_available():
+                mymodel.load_state_dict(torch.load("best.ckpt"))
+            else:
+                mymodel.load_state_dict(torch.load("best.ckpt",map_location= device))
+        
         solver.test(mymodel,test_data,test_interval,arg[3],device=device,mode='test')
 
         

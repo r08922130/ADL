@@ -10,7 +10,7 @@ class Solver:
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     def train(self,seq_model,batches,labels,mul,valid_batches,valid_labels,val_mul,device,mode='extractive',
-                criterion=nn.BCEWithLogitsLoss(),epoch=10,lr=0.0001,encoder=None,decoder=None):
+                criterion=nn.BCEWithLogitsLoss(),epoch=10,lr=0.01,encoder=None,decoder=None):
         
         min_loss = 100000000
         best_model = None
@@ -31,18 +31,20 @@ class Solver:
                     m = torch.tensor(mul[i],requires_grad=False).float().to(device)
                     m = m.permute(1,0)
                     #print(m.size())
-                    hidden = seq_model.encoder.initHidden(len(batches[i])).to(device)
-                    pred, _ = seq_model(data,hidden)
                     
-
-                    loss = criterion(pred.view(pred.size()[0],pred.size()[1])*m, target) 
+                    pred, _ = seq_model(data)
+                    
+                    pred = pred.view(pred.size()[0],pred.size()[1])*m
+                    loss = criterion(pred, target) 
                     loss.backward()
-
+                    torch.nn.utils.clip_grad_norm_(seq_model.parameters(),10)
                     seq_opt.step()
                     
 
                     if i % 100 == 0:
                         #print(data)
+                        
+                            #print(pred.permute(1,0)[0])
                         print("Train epoch : {}, step : {} / {}, loss : {}".format(ep, i,bl,loss.item()))
                 # validation
                 seq_model.eval()
@@ -56,8 +58,7 @@ class Solver:
                     
                     m = torch.tensor(val_mul[i]).float().to(device)
                     m = m.permute(1,0)
-                    hidden = seq_model.encoder.initHidden(len(valid_batches[i])).to(device)
-                    pred, _ = seq_model(data,hidden)
+                    pred, _ = seq_model(data)
                     loss = criterion(pred.view(pred.size()[0],pred.size()[1])*m, target) 
                     total_loss += loss.item()
                     if i % 100 == 0:
@@ -80,14 +81,14 @@ class Solver:
             
             data = torch.LongTensor(batches[i]).to(device)
             data = data.permute(1,0)
-            hidden = seq_model.encoder.initHidden(len(batches[i])).to(device)
-            pred, _ = seq_model(data,hidden)
+            pred, _ = seq_model(data)
             pred = pred.view(pred.size()[0],pred.size()[1])
             pred = pred.permute(1,0)
             if i %500 == 0:
                 print(i/l)
-            pred = pred > 0.5
-            pred = pred.float()
+            #pred = pred > 0.5
+            
+            pred = pred.detach().float()
             #print(pred.size())
             result_dict,n = post.select_sentence(pred.cpu().numpy(),interval[i],result_dict,n)
             

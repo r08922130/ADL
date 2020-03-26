@@ -6,17 +6,20 @@ class Postprocessing:
     def select_sentence(self,sentences,intervals,result_dict,start):
         
         n = start
+        
         for k in range(len(sentences)):
             result = []
             
             for i in range(len(intervals[k])-1):
                 isSummary = sentences[k][intervals[k][i+1]-1]
-                if isSummary ==1:
+                if isSummary > 0.5:
                     result += [i]
                 
             if len(result) == 0:
-                result+=[0]
-            result_dict+=[{'id' : str(n+3000000),'predict_sentence_index':result }] 
+                index = np.argmax(sentences[k])
+                
+                result+=[int(index)] 
+            result_dict+=[{'id' : str(n+2000000),'predict_sentence_index':result }] 
             
             n+=1
         return result_dict, n

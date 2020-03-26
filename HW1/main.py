@@ -15,7 +15,7 @@ if __name__ == "__main__":
 
     if arg[1] == '--train':
         print("Training")
-        # cmd : python main.py --train emb_dim 30 
+        # cmd : python main.py --train emb_dim 30 pre/no
         dim = arg[2] if arg[2] else 50
         dim = int(dim)
         if not os.path.isfile("embedding.npy"):
@@ -71,11 +71,14 @@ if __name__ == "__main__":
         
          
         criterion =nn.BCEWithLogitsLoss(pos_weight=torch.Tensor([(total-pos)/pos])).to(device)
-        mymodel = SequenceTaggle(embedding.shape[0],embedding.shape[1],256,1,layer=3).to(device)
+        mymodel = SequenceTaggle(embedding.shape[0],embedding.shape[1],256,1,device,layer=3).to(device)
         mymodel.embedding.from_pretrained(torch.FloatTensor(embedding))
+        if arg[4] == 'pre':
+            mymodel.load_state_dict(torch.load("ckpt/best.ckpt"))
         solver.train(mymodel,train_data,train_label,mul_train,valid_data,valid_label,mul_val,criterion=criterion,device=device,epoch=int(arg[3]))
         if not os.path.exists("ckpt"):
             os.mkdir("ckpt")
+        
         torch.save(mymodel.state_dict(), "ckpt/best.ckpt")
     else:
         #python main.py --test test_file pred_file TA/pred dim
@@ -100,9 +103,9 @@ if __name__ == "__main__":
             test_data = test_data[:-1]
             test_interval = test_interval[:-1]
         print(test_data[0].shape[-1])
-        mymodel = SequenceTaggle(embedding.shape[0],embedding.shape[1],256,1,layer=3).to(device)
+        mymodel = SequenceTaggle(embedding.shape[0],embedding.shape[1],256,1,device,layer=3).to(device)
         mymodel.embedding.from_pretrained(torch.FloatTensor(embedding))
-        if os.path.isfile("ckpt/best.ckpt"):
+        if os.path.isfile("ckpt_QQ/best.ckpt"):
             if torch.cuda.is_available():
                 mymodel.load_state_dict(torch.load("ckpt/best.ckpt"))
             else:

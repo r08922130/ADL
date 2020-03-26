@@ -18,10 +18,11 @@ if __name__ == "__main__":
         # cmd : python main.py --train emb_dim 30 pre/no
         dim = arg[2] if arg[2] else 50
         dim = int(dim)
-        if not os.path.isfile("embedding.npy"):
+        if not os.path.isfile("data/train_data_{}.npy".format(dim)):
             print("No File . Preprocessing!")
             pre = Preprocessing()
-            pre.batch_data(dim=300,modes=['train','valid','test'])
+            dic = json.load(open("dict.json"))
+            pre.pad_sentences(dic,dim=dim,modes=['train','valid','test'])
         
         train_data = np.load("data/train_data_{}.npy".format(dim),allow_pickle=True)
         print(train_data[0].shape)
@@ -37,7 +38,7 @@ if __name__ == "__main__":
         
         print(embedding.shape)
 
-        
+        # data shape :(batch,# sentences per data, # word per sentences)
 
         if len(train_data[-1]) == 0 :
             train_data = train_data[:-1]
@@ -48,8 +49,7 @@ if __name__ == "__main__":
             valid_label = valid_label[:-1]
             valid_interval = valid_interval[:-1]
         
-        pos = 0
-        total = 0
+        """
         
         mul_train = []
         for i,batch in enumerate(train_label):
@@ -67,15 +67,23 @@ if __name__ == "__main__":
             for j,label in enumerate(batch):
                 
                 for k in valid_interval[i][j][1:]:
-                    mul_val[i][j][k-1] = 1
+                    mul_val[i][j][k-1] = 1"""
+        pos = 0
+        total = 0
         
+        for i,batch in enumerate(train_label):
+            
+            for j,label in enumerate(batch):
+                pos += 1
+                total += len(batch)
+                
          
         criterion =nn.BCEWithLogitsLoss(pos_weight=torch.Tensor([(total-pos)/pos])).to(device)
         mymodel = SequenceTaggle(embedding.shape[0],embedding.shape[1],256,1,device,layer=3).to(device)
         mymodel.embedding.from_pretrained(torch.FloatTensor(embedding))
         if arg[4] == 'pre':
             mymodel.load_state_dict(torch.load("ckpt/best.ckpt"))
-        solver.train(mymodel,train_data,train_label,mul_train,valid_data,valid_label,mul_val,criterion=criterion,device=device,epoch=int(arg[3]))
+        solver.train_sentences(mymodel,train_data,train_label,valid_data,valid_label,criterion=criterion,device=device,epoch=int(arg[3]))
         if not os.path.exists("ckpt"):
             os.mkdir("ckpt")
         

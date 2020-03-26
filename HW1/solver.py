@@ -73,7 +73,67 @@ class Solver:
                     torch.save(best_model.state_dict(), "ckpt/best.ckpt")
             seq_model = best_model
                     
+    def train_sentences(self,seq_model,batches,labels,valid_batches,valid_labels,device,mode='extractive',
+                criterion=nn.BCEWithLogitsLoss(),epoch=10,lr=0.01,encoder=None,decoder=None):
+        
+        min_loss = 100000000
+        best_model = None
+        seq_opt=optim.RMSprop(seq_model.parameters(), lr=lr)
+        if mode == 'extractive':
+            for ep in range(epoch):
+                seq_model.train()
+                bl = len(batches)
+                for i in range(bl):
+                    seq_opt.zero_grad()
+                    data = torch.LongTensor(batches[i]).to(device)
+                    data = data.permute(1,2,0)
+                    
+                    target = torch.tensor(labels[i]).float().to(device)
+                    #print(target.size())
+                    target = target.permute(1,0)
+                    
+                    
+                    
+                    pred, _ = seq_model(data)
+                    
+                    pred = pred.view(pred.size()[0],pred.size()[1])
+                    loss = criterion(pred, target) 
 
+                    
+                    loss.backward()
+                    torch.nn.utils.clip_grad_norm_(seq_model.parameters(),10)
+                    seq_opt.step()
+                    
+
+                    if i % 100 == 0:
+                        #print(data)
+                        
+                            #print(pred.permute(1,0)[0])
+                        print("Train epoch : {}, step : {} / {}, loss : {}".format(ep, i,bl,loss.item()))
+                # validation
+                seq_model.eval()
+                bl = len(valid_batches)
+                total_loss=0
+                for i in range(bl):
+                    data = torch.LongTensor(valid_batches[i]).to(device)
+                    data = data.permute(1,2,0)
+                    
+                    target = torch.tensor(valid_labels[i]).float().to(device)
+                    target = target.permute(1,0)
+                    
+                    
+                    pred, _ = seq_model(data)
+                    loss = criterion(pred.view(pred.size()[0],pred.size()[1]), target) 
+
+                    total_loss += loss.item()
+                    if i % 100 == 0:
+                        print("Valid epoch : {}, step : {} / {}, loss : {}".format(ep, i,bl,loss.item()))
+                if min_loss > total_loss:
+                    min_loss =total_loss
+                    best_model = seq_model
+                if ep %10 == 0:
+                    torch.save(best_model.state_dict(), "ckpt/best.ckpt")
+            seq_model = best_model
     def test(self,seq_model,batches,interval,output_file,device,mode='test'):
         result = []
         post = Postprocessing()

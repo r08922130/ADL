@@ -13,7 +13,96 @@ class Preprocessing:
             for line in f:
                 json_array += [json.loads(line)]
         return json_array
-    
+    def pad_sentences(self,dic ,batch_size=16,dim=50,modes=['train','valid']):
+        
+        for mode in modes:
+            arr = self.load_data("data/{}.jsonl".format(mode))
+            
+            batches_x = []
+            batch_label = []
+            batches_labels = []
+            interval = []
+            interval_s = []
+            n = 0
+            max_s =0
+            max_d = 0
+            docs = []
+            for k,data in enumerate(arr):
+                internals = data['sent_bounds']
+                interval += [internals]
+                if mode != 'test':
+                    ex_sum =data['extractive_summary']
+                    summary = data['summary'] 
+                    batch_label += [ex_sum]
+                text = data['text']
+                sents = []
+                labels = []
+                now = 0
+                for internal in internals:
+                    t = text[internal[0]:internal[1]]
+                    
+                    t = self.tokenize(t)
+                    t = ["<SOS>"] + t + ["<EOS>"]
+                    max_s = max(max_s,len(t))
+                    sents += [t]
+                    now +=1
+                
+                docs += [sents]
+                max_d = max(max_d,now)
+                
+
+                if k%batch_size ==batch_size-1:
+                    if mode != 'test':
+                        lab = []
+                        for label in batch_label:
+                            l = [0]* max_d
+                            l[label] = 1
+                            lab+= [l]
+                        
+                        batches_labels += [lab]
+                        batch_label = []
+                    before_map = self.pad(docs,max_d,max_s)
+                    docs =[]
+                    max_d=0
+                    max_s =0
+                    batches_x += [self.map(before_map,dic)]
+                    
+                    
+                    batch_label = []
+                    interval_s+= [interval]
+                    interval = []
+                if k % 800 == 799:
+                    print(len(batches_x))
+                    print(batches_x[-1].shape)
+            before_map = self.pad(docs,max_d,max_s)
+            batches_x += [self.map(before_map,dic)]
+            interval_s+= [interval]
+            if mode != 'test':
+                batches_labels += [batch_label]
+            np.save("data/{}_data_{}.npy".format(mode,dim),np.asarray(batches_x))
+            np.save("data/{}_label_{}.npy".format(mode,dim),np.asarray(batches_labels))
+            np.save("data/{}_interval_{}.npy".format(mode,dim),np.asarray(interval_s))
+            print("Save {}".format(mode))
+    def pad(self,docs,max_d,max_s):
+        doc = []
+        for sens in docs:
+            s = 0
+            t = []
+            for sen in sens:
+                s+=1
+                t += [sen+(["<PAD>"]*(max_s-len(sen)))]
+            t += [["<PAD>"]*max_s]*(max_d-s)
+            
+            doc +=[t]
+        return doc
+    def map(self,docs,dic):
+        mapped = []
+        for sens in docs:
+            t = []
+            for sen in sens:
+                t += [[dic[s] for s in sen]]
+            mapped += [t]
+        return np.asarray(mapped)
     def batch_data(self,dic = None ,batch_size=16,dim=50,modes=['train','valid']):
         #mode : 'extractive' , 'abstractive'
         e = Embedding("glove.6B.{}d.txt".format(dim),dim=dim)

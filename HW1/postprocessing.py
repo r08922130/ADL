@@ -3,23 +3,26 @@ import json
 class Postprocessing:
     def __init__(self):
         pass
-    def select_sentence(self,sentences,intervals,result_dict,start):
+    def select_sentence(self,sentences,intervals,result_dict,start,mode='valid'):
         
         n = start
-        
+        if mode == 'test':
+            id_start = 3000000
+        else:
+            id_start = 2000000
         for k in range(len(sentences)):
             result = []
             
-            for i in range(len(intervals[k])-1):
+            """for i in range(len(intervals[k])-1):
                 isSummary = sentences[k][intervals[k][i+1]-1]
                 if isSummary > 0.5:
-                    result += [i]
+                    result += [i]"""
                 
-            if len(result) == 0:
-                index = np.argmax(sentences[k])
+            #if len(result) == 0:
+            index = np.argmax(sentences[k])
                 
-                result+=[int(index)] 
-            result_dict+=[{'id' : str(n+2000000),'predict_sentence_index':result }] 
+            result+=[int(index)] 
+            result_dict+=[{'id' : str(n+id_start),'predict_sentence_index':result }] 
             
             n+=1
         return result_dict, n

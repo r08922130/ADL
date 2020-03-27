@@ -72,13 +72,18 @@ class Preprocessing:
                     interval_s+= [interval]
                     interval = []
                 if k % 800 == 799:
-                    print(len(batches_x))
+                    print(k+1)
                     print(batches_x[-1].shape)
             before_map = self.pad(docs,max_d,max_s)
             batches_x += [self.map(before_map,dic)]
             interval_s+= [interval]
             if mode != 'test':
-                batches_labels += [batch_label]
+                lab=[]
+                for label in batch_label:
+                    l = [0]* max_d
+                    l[label] = 1
+                    lab+= [l]
+                batches_labels += [lab]
             np.save("data/{}_data_{}.npy".format(mode,dim),np.asarray(batches_x))
             np.save("data/{}_label_{}.npy".format(mode,dim),np.asarray(batches_labels))
             np.save("data/{}_interval_{}.npy".format(mode,dim),np.asarray(interval_s))

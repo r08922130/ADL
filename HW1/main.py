@@ -76,7 +76,8 @@ if __name__ == "__main__":
             for j,label in enumerate(batch):
                 pos += 1
                 total += len(batch)
-                
+        print(pos)
+        print(total)
          
         criterion =nn.BCEWithLogitsLoss(pos_weight=torch.Tensor([(total-pos)/pos])).to(device)
         mymodel = SequenceTaggle(embedding.shape[0],embedding.shape[1],256,1,device,layer=3).to(device)
@@ -113,7 +114,7 @@ if __name__ == "__main__":
         print(test_data[0].shape[-1])
         mymodel = SequenceTaggle(embedding.shape[0],embedding.shape[1],256,1,device,layer=3).to(device)
         mymodel.embedding.from_pretrained(torch.FloatTensor(embedding))
-        if os.path.isfile("ckpt_QQ/best.ckpt"):
+        if os.path.isfile("ckpt/best.ckpt"):
             if torch.cuda.is_available():
                 mymodel.load_state_dict(torch.load("ckpt/best.ckpt"))
             else:

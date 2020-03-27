@@ -74,7 +74,7 @@ class Solver:
             seq_model = best_model
                     
     def train_sentences(self,seq_model,batches,labels,valid_batches,valid_labels,device,mode='extractive',
-                criterion=nn.BCEWithLogitsLoss(),epoch=10,lr=0.01,encoder=None,decoder=None):
+                criterion=nn.BCEWithLogitsLoss(),epoch=10,lr=0.0001,encoder=None,decoder=None):
         
         min_loss = 100000000
         best_model = None
@@ -107,7 +107,7 @@ class Solver:
 
                     if i % 100 == 0:
                         #print(data)
-                        
+                        #print(pred.permute(1,0))
                             #print(pred.permute(1,0)[0])
                         print("Train epoch : {}, step : {} / {}, loss : {}".format(ep, i,bl,loss.item()))
                 # validation
@@ -143,10 +143,11 @@ class Solver:
         for i in range(l):
             
             data = torch.LongTensor(batches[i]).to(device)
-            data = data.permute(1,0)
+            data = data.permute(1,2,0)
             pred, _ = seq_model(data)
             pred = pred.view(pred.size()[0],pred.size()[1])
             pred = pred.permute(1,0)
+            pred = torch.sigmoid(pred)
             if i %500 == 0:
                 print(i/l)
             #pred = pred > 0.5

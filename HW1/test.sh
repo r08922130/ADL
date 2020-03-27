@@ -1,0 +1,1 @@
+python main.py --test $1 $2 pred 300  m1 $3

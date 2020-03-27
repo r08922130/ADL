@@ -3,7 +3,7 @@ import json
 class Postprocessing:
     def __init__(self):
         pass
-    def select_sentence(self,sentences,intervals,result_dict,start,mode='valid'):
+    def select_sentence(self,sentences,intervals,result_dict,start,mode='valid',model='m1'):
         
         n = start
         if mode == 'test':
@@ -12,16 +12,18 @@ class Postprocessing:
             id_start = 2000000
         for k in range(len(sentences)):
             result = []
+            if model == 'm1':
+                for i in range(len(intervals[k])-1):
+                    isSummary = sentences[k][intervals[k][i+1]-1]
+                    if isSummary > 0.5:
+                        result += [i]
+            else:
             
-            """for i in range(len(intervals[k])-1):
-                isSummary = sentences[k][intervals[k][i+1]-1]
-                if isSummary > 0.5:
-                    result += [i]"""
-                
-            #if len(result) == 0:
-            index = np.argmax(sentences[k])
-                
-            result+=[int(index)] 
+                index = np.argmax(sentences[k])
+                result+=[int(index)]
+            if len(result) == 0: 
+                index = np.argmax(sentences[k])
+                result+=[int(index)] 
             result_dict+=[{'id' : str(n+id_start),'predict_sentence_index':result }] 
             
             n+=1

@@ -166,7 +166,7 @@ class Solver:
                     torch.save(best_model.state_dict(), "ckpt/best.ckpt")
             self.plot(x_train,loss_train,x_val,loss_val)
             seq_model = best_model
-    def test(self,seq_model,batches,interval,output_file,device,mode='test'):
+    def test(self,seq_model,batches,interval,output_file,device,mode='test',model='m1'):
         result = []
         post = Postprocessing()
         n = 0
@@ -186,7 +186,7 @@ class Solver:
             
             pred = pred.detach().float()
             #print(pred.size())
-            result_dict,n = post.select_sentence(pred.cpu().numpy(),interval[i],result_dict,n)
+            result_dict,n = post.select_sentence(pred.cpu().numpy(),interval[i],result_dict,n,model=model)
             
             #print(pred.size())
         if mode == 'test':

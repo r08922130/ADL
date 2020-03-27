@@ -4,6 +4,7 @@ import torch.nn as nn
 import sys
 from preprocessing import Preprocessing
 from model import SequenceTaggle
+from model import SequenceTaggle1
 import os
 from solver import Solver
 import json
@@ -15,25 +16,29 @@ if __name__ == "__main__":
 
     if arg[1] == '--train':
         print("Training")
-        # cmd : python main.py --train emb_dim 30 pre/no
+        # cmd : python main.py --train emb_dim 30 pre/no m1/m2
+        #                0        1       2     3    4    5
         dim = arg[2] if arg[2] else 50
         dim = int(dim)
-        if not os.path.isfile("data/train_data_{}.npy".format(dim)):
+        if not os.path.isfile("data/train_data_{}_{}.npy".format(dim,arg[5])):
             print("No File . Preprocessing!")
             pre = Preprocessing()
             dic = json.load(open("dict.json"))
-            pre.pad_sentences(dic,dim=dim,modes=['train','valid','test'])
+            if arg[5] == 'm1':
+                pre.batch_data(dic,dim=dim,modes=['train','valid','test'],model=arg[5])
+            else:
+                pre.pad_sentences(dic,dim=dim,modes=['train','valid','test'],model=arg[5])
         
-        train_data = np.load("data/train_data_{}.npy".format(dim),allow_pickle=True)
+        train_data = np.load("data/train_data_{}_{}.npy".format(dim,arg[5]),allow_pickle=True)
         print(train_data[0].shape)
         print(train_data[0][0])
-        train_label = np.load("data/train_label_{}.npy".format(dim),allow_pickle=True)
+        train_label = np.load("data/train_label_{}_{}.npy".format(dim,arg[5]),allow_pickle=True)
         #print(train_label[0].shape)
         #print(train_label[0][0])
-        train_interval = np.load("data/train_interval_{}.npy".format(dim),allow_pickle=True)
-        valid_data = np.load("data/valid_data_{}.npy".format(dim),allow_pickle=True)
-        valid_label = np.load("data/valid_label_{}.npy".format(dim),allow_pickle=True)
-        valid_interval = np.load("data/valid_interval_{}.npy".format(dim),allow_pickle=True)
+        train_interval = np.load("data/train_interval_{}_{}.npy".format(dim,arg[5]),allow_pickle=True)
+        valid_data = np.load("data/valid_data_{}_{}.npy".format(dim,arg[5]),allow_pickle=True)
+        valid_label = np.load("data/valid_label_{}_{}.npy".format(dim,arg[5]),allow_pickle=True)
+        valid_interval = np.load("data/valid_interval_{}_{}.npy".format(dim,arg[5]),allow_pickle=True)
         embedding = np.load("embedding.npy",allow_pickle=True)
         
         print(embedding.shape)
@@ -49,49 +54,57 @@ if __name__ == "__main__":
             valid_label = valid_label[:-1]
             valid_interval = valid_interval[:-1]
         
-        """
         
-        mul_train = []
-        for i,batch in enumerate(train_label):
-            mul_train += [ batch.copy()]
-            for j,label in enumerate(batch):
-                pos += 1
-                total += len(train_interval[i][j])-1
-                for k in train_interval[i][j][1:]:
-                    
-                    mul_train[i][j][k-1] = 1
-        
-        mul_val = []
-        for i,batch in enumerate(valid_label):
-            mul_val += [ batch.copy()]
-            for j,label in enumerate(batch):
-                
-                for k in valid_interval[i][j][1:]:
-                    mul_val[i][j][k-1] = 1"""
         pos = 0
         total = 0
-        
-        for i,batch in enumerate(train_label):
+        if arg[5] == 'm1':
+            mul_train = []
+            for i,batch in enumerate(train_label):
+                mul_train += [ batch.copy()]
+                for j,label in enumerate(batch):
+                    pos += 1
+                    total += len(train_interval[i][j])-1
+                    for k in train_interval[i][j][1:]:
+                        
+                        mul_train[i][j][k-1] = 1
             
-            for j,label in enumerate(batch):
-                pos += 1
-                total += len(batch)
-        print(pos)
-        print(total)
-         
-        criterion =nn.BCEWithLogitsLoss(pos_weight=torch.Tensor([(total-pos)/pos])).to(device)
-        mymodel = SequenceTaggle(embedding.shape[0],embedding.shape[1],256,1,device,layer=3).to(device)
-        mymodel.embedding.from_pretrained(torch.FloatTensor(embedding))
-        if arg[4] == 'pre':
-            mymodel.load_state_dict(torch.load("ckpt/best.ckpt"))
-        solver.train_sentences(mymodel,train_data,train_label,valid_data,valid_label,criterion=criterion,device=device,epoch=int(arg[3]))
+            mul_val = []
+            for i,batch in enumerate(valid_label):
+                mul_val += [ batch.copy()]
+                for j,label in enumerate(batch):
+                    
+                    for k in valid_interval[i][j][1:]:
+                        mul_val[i][j][k-1] = 1
+            print(pos)
+            print(total)
+            criterion =nn.BCEWithLogitsLoss(pos_weight=torch.Tensor([(total-pos)/pos])).to(device)
+            mymodel = SequenceTaggle1(embedding.shape[0],embedding.shape[1],256,1,device,layer=3).to(device)
+            mymodel.embedding.from_pretrained(torch.FloatTensor(embedding))
+            if arg[4] == 'pre':
+                mymodel.load_state_dict(torch.load("ckpt/best.ckpt"))
+            solver.train(mymodel,train_data,train_label,mul_train,valid_data,valid_label,mul_val,criterion=criterion,device=device,epoch=int(arg[3]))
+        
+        else:
+            for i,batch in enumerate(train_label):
+                
+                for j,label in enumerate(batch):
+                    pos += 1
+                    total += len(batch)
+            print(pos)
+            print(total)
+            criterion =nn.BCEWithLogitsLoss(pos_weight=torch.Tensor([(total-pos)/pos])).to(device)
+            mymodel = SequenceTaggle(embedding.shape[0],embedding.shape[1],256,1,device,layer=3).to(device)
+            mymodel.embedding.from_pretrained(torch.FloatTensor(embedding))
+            if arg[4] == 'pre':
+                mymodel.load_state_dict(torch.load("ckpt/best.ckpt"))
+            solver.train_sentences(mymodel,train_data,train_label,valid_data,valid_label,criterion=criterion,device=device,epoch=int(arg[3]))
         if not os.path.exists("ckpt"):
             os.mkdir("ckpt")
         
         torch.save(mymodel.state_dict(), "ckpt/best.ckpt")
     else:
-        #python main.py --test test_file pred_file TA/pred dim
-
+        #python main.py --test test_file pred_file TA/pred dim  m1/m2 ckpt
+        #         0      1        2          3         4     5  6      7
         print("Testing")
         test_file = arg[2]
         dim = arg[5]
@@ -105,27 +118,27 @@ if __name__ == "__main__":
                 pre = Preprocessing()
                 pre.batch_data(dim=dim,modes=['train','valid','test'])
 
-            test_data = np.load("data/test_data_{}.npy".format(dim),allow_pickle=True)
-            test_interval = np.load("data/test_interval_{}.npy".format(dim),allow_pickle=True)
+            test_data = np.load("data/test_data_{}_{}.npy".format(dim,arg[6]),allow_pickle=True)
+            test_interval = np.load("data/test_interval_{}_{}.npy".format(dim,arg[6]),allow_pickle=True)
         embedding = np.load("embedding.npy",allow_pickle=True)
         if len(test_data[-1]) == 0 :
             test_data = test_data[:-1]
             test_interval = test_interval[:-1]
         print(test_data[0].shape[-1])
-        mymodel = SequenceTaggle(embedding.shape[0],embedding.shape[1],256,1,device,layer=3).to(device)
-        mymodel.embedding.from_pretrained(torch.FloatTensor(embedding))
-        if os.path.isfile("ckpt/best.ckpt"):
-            if torch.cuda.is_available():
-                mymodel.load_state_dict(torch.load("ckpt/best.ckpt"))
-            else:
-                mymodel.load_state_dict(torch.load("ckpt/best.ckpt",map_location= device))
-        elif os.path.isfile("best.ckpt"):
-            if torch.cuda.is_available():
-                mymodel.load_state_dict(torch.load("best.ckpt"))
-            else:
-                mymodel.load_state_dict(torch.load("best.ckpt",map_location= device))
+        if arg[6] == 'm1' :
+            mymodel = SequenceTaggle(embedding.shape[0],embedding.shape[1],256,1,device,layer=3).to(device)
+            mymodel.embedding.from_pretrained(torch.FloatTensor(embedding))
         
-        solver.test(mymodel,test_data,test_interval,arg[3],device=device,mode='test')
+        else:
+            mymodel = SequenceTaggle(embedding.shape[0],embedding.shape[1],256,1,device,layer=3).to(device)
+            mymodel.embedding.from_pretrained(torch.FloatTensor(embedding))
+        if os.path.isfile(arg[7]):
+            if torch.cuda.is_available():
+                mymodel.load_state_dict(torch.load(arg[7]))
+            else:
+                mymodel.load_state_dict(torch.load(arg[7],map_location= device))
+        
+        solver.test(mymodel,test_data,test_interval,arg[3],device=device,mode='test',model=arg[6])
 
         
         

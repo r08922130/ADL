@@ -13,7 +13,7 @@ class Preprocessing:
             for line in f:
                 json_array += [json.loads(line)]
         return json_array
-    def pad_sentences(self,dic ,batch_size=16,dim=50,modes=['train','valid']):
+    def pad_sentences(self,dic ,batch_size=16,dim=50,modes=['train','valid'],model='m1'):
         
         for mode in modes:
             arr = self.load_data("data/{}.jsonl".format(mode))
@@ -84,9 +84,9 @@ class Preprocessing:
                     l[label] = 1
                     lab+= [l]
                 batches_labels += [lab]
-            np.save("data/{}_data_{}.npy".format(mode,dim),np.asarray(batches_x))
-            np.save("data/{}_label_{}.npy".format(mode,dim),np.asarray(batches_labels))
-            np.save("data/{}_interval_{}.npy".format(mode,dim),np.asarray(interval_s))
+            np.save("data/{}_data_{}_{}.npy".format(mode,dim,model),np.asarray(batches_x))
+            np.save("data/{}_label_{}_{}.npy".format(mode,dim,model),np.asarray(batches_labels))
+            np.save("data/{}_interval_{}_{}.npy".format(mode,dim,model),np.asarray(interval_s))
             print("Save {}".format(mode))
     def pad(self,docs,max_d,max_s):
         doc = []
@@ -108,7 +108,7 @@ class Preprocessing:
                 t += [[dic[s] for s in sen]]
             mapped += [t]
         return np.asarray(mapped)
-    def batch_data(self,dic = None ,batch_size=16,dim=50,modes=['train','valid']):
+    def batch_data(self,dic = None ,batch_size=16,dim=50,modes=['train','valid'],model='m1'):
         #mode : 'extractive' , 'abstractive'
         e = Embedding("glove.6B.{}d.txt".format(dim),dim=dim)
         myEmbedding = []
@@ -213,9 +213,9 @@ class Preprocessing:
             interval_s += [interval]
             if mode != 'test':
                 batches_labels += [batch_label]
-            np.save("data/{}_data_{}.npy".format(mode,dim),np.asarray(batches_x))
-            np.save("data/{}_label_{}.npy".format(mode,dim),np.asarray(batches_labels))
-            np.save("data/{}_interval_{}.npy".format(mode,dim),np.asarray(interval_s))
+            np.save("data/{}_data_{}_{}.npy".format(mode,dim,model),np.asarray(batches_x))
+            np.save("data/{}_label_{}_{}.npy".format(mode,dim,model),np.asarray(batches_labels))
+            np.save("data/{}_interval_{}_{}.npy".format(mode,dim,model),np.asarray(interval_s))
 
         np.save("embedding.npy",np.asarray(myEmbedding))
         

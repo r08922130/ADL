@@ -63,6 +63,7 @@ class Solver:
                 seq_model.eval()
                 bl = len(valid_batches)
                 total_loss=0
+                val_step = 0
                 for i in range(bl):
                     data = torch.LongTensor(valid_batches[i]).to(device)
                     data = data.permute(1,0)
@@ -75,12 +76,13 @@ class Solver:
                     loss = criterion(pred.view(pred.size()[0],pred.size()[1])*m, target) 
 
                     total_loss += loss.item()
-                    step+=1
+                    val_step+=1
                     
                     if i % 100 == 0:
-                        x_val+= [step]
-                        loss_val += [total_loss/step]
+                        
                         print("Valid epoch : {}, step : {} / {}, loss : {}".format(ep, i,bl,loss.item()))
+                x_val+= [step]
+                loss_val += [total_loss/val_step]
                 if min_loss > total_loss:
                     min_loss =total_loss
                     best_model = seq_model
@@ -104,6 +106,7 @@ class Solver:
             for ep in range(epoch):
                 seq_model.train()
                 bl = len(batches)
+                total_loss = 0
                 for i in range(bl):
                     seq_opt.zero_grad()
                     data = torch.LongTensor(batches[i]).to(device)
@@ -137,6 +140,7 @@ class Solver:
                 seq_model.eval()
                 bl = len(valid_batches)
                 total_loss=0
+                val_step = 0
                 for i in range(bl):
                     data = torch.LongTensor(valid_batches[i]).to(device)
                     data = data.permute(1,2,0)
@@ -149,11 +153,12 @@ class Solver:
                     loss = criterion(pred.view(pred.size()[0],pred.size()[1]), target) 
 
                     total_loss += loss.item()
-                    step +=1
+                    val_step +=1
                     if i % 100 == 0:
-                        x_val+= [step]
-                        loss_val += [total_loss/step]
+                        
                         print("Valid epoch : {}, step : {} / {}, loss : {}".format(ep, i,bl,loss.item()))
+                x_val+= [step]
+                loss_val += [total_loss/val_step]
                 if min_loss > total_loss:
                     min_loss =total_loss
                     best_model = seq_model

@@ -150,8 +150,8 @@ class Preprocessing:
                         if now != ex_sum:
                             labels += [0] * l
                         else :
-                            labels += [0] * (l-1)
-                            labels+= [1]
+                            labels += [1] * l
+                            
                     inter_start += [l+inter_start[-1]]
                     sents += t
                     now +=1

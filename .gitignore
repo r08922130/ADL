@@ -4,10 +4,10 @@ HW1/__pycache__
 HW1/.vscode
 HW1/early.jsonl
 HW1/glove*
-HW1/ckpt
+HW1/ckpt*
 HW1/r08922130*
 HW1/embedding.npy
-<<<<<<< HEAD
-=======
 HW1/dict.json
->>>>>>> 680fac6bf6ddf8f776f575b841f9b65504d9b805
+HW1/v_pre*
+HW1/train.sh
+HW1/test.sh

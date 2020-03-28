@@ -3,6 +3,7 @@ import torch
 import numpy as np
 import torch.nn as nn
 import torch.optim as optim
+import torch.optim.lr_scheduler as lr_scheduler
 from postprocessing import Postprocessing
 import matplotlib.pyplot as plt
 class Solver:
@@ -13,12 +14,13 @@ class Solver:
         plt.figure()
         plt.plot(x,y,"r",x_val,y_val,"b")
         plt.show()
-    def train(self,seq_model,batches,labels,mul,valid_batches,valid_labels,val_mul,device,mode='extractive',
-                criterion=nn.BCEWithLogitsLoss(),epoch=10,lr=0.01,encoder=None,decoder=None):
+    def train(self,seq_model,batches,labels,valid_batches,valid_labels,device,mode='extractive',
+                criterion=nn.BCEWithLogitsLoss(),epoch=10,lr=0.00001,encoder=None,decoder=None):
         
         min_loss = 100000000
         best_model = None
         seq_opt=optim.RMSprop(seq_model.parameters(), lr=lr)
+        scheduler = lr_scheduler.StepLR(seq_opt,step_size=10,gamma=0.5)
         step = 0
         x_train = []
         loss_train =[]
@@ -29,6 +31,7 @@ class Solver:
                 seq_model.train()
                 bl = len(batches)
                 total_loss=0
+                
                 for i in range(bl):
                     seq_opt.zero_grad()
                     data = torch.LongTensor(batches[i]).to(device)
@@ -38,27 +41,27 @@ class Solver:
                     #print(target.size())
                     target = target.permute(1,0)
                     
-                    m = torch.tensor(mul[i],requires_grad=False).float().to(device)
-                    m = m.permute(1,0)
                     #print(m.size())
                     
                     pred, _ = seq_model(data)
                     
-                    pred = pred.view(pred.size()[0],pred.size()[1])*m
+                    pred = pred.view(pred.size()[0],pred.size()[1])
                     loss = criterion(pred, target) 
 
                     
                     loss.backward()
-                    torch.nn.utils.clip_grad_norm_(seq_model.parameters(),10)
+                    torch.nn.utils.clip_grad_norm_(seq_model.parameters(),5)
                     seq_opt.step()
+                    
                     step+=1
                     total_loss+= loss.item()
                     if i % 100 == 0:
                         #print(data)
                         x_train+= [step]
-                        loss_train += [total_loss/step]
+                        loss_train += [total_loss/(i+1)]
                             #print(pred.permute(1,0)[0])
                         print("Train epoch : {}, step : {} / {}, loss : {}".format(ep, i,bl,loss.item()))
+                scheduler.step()
                 # validation
                 seq_model.eval()
                 bl = len(valid_batches)
@@ -70,10 +73,9 @@ class Solver:
                     target = torch.tensor(valid_labels[i]).float().to(device)
                     target = target.permute(1,0)
                     
-                    m = torch.tensor(val_mul[i]).float().to(device)
-                    m = m.permute(1,0)
+                    
                     pred, _ = seq_model(data)
-                    loss = criterion(pred.view(pred.size()[0],pred.size()[1])*m, target) 
+                    loss = criterion(pred.view(pred.size()[0],pred.size()[1]), target) 
 
                     total_loss += loss.item()
                     val_step+=1
@@ -82,7 +84,7 @@ class Solver:
                         
                         print("Valid epoch : {}, step : {} / {}, loss : {}".format(ep, i,bl,loss.item()))
                 x_val+= [step]
-                loss_val += [total_loss/val_step]
+                loss_val += [total_loss/bl]
                 if min_loss > total_loss:
                     min_loss =total_loss
                     best_model = seq_model
@@ -96,7 +98,8 @@ class Solver:
         
         min_loss = 100000000
         best_model = None
-        seq_opt=optim.RMSprop(seq_model.parameters(), lr=lr)
+        seq_opt=optim.Adam(seq_model.parameters(), lr=lr)
+        scheduler = lr_scheduler.StepLR(seq_opt,step_size=10,gamma=0.5)
         step = 0
         x_train = []
         loss_train =[]
@@ -107,6 +110,7 @@ class Solver:
                 seq_model.train()
                 bl = len(batches)
                 total_loss = 0
+                
                 for i in range(bl):
                     seq_opt.zero_grad()
                     data = torch.LongTensor(batches[i]).to(device)
@@ -125,17 +129,19 @@ class Solver:
 
                     
                     loss.backward()
-                    torch.nn.utils.clip_grad_norm_(seq_model.parameters(),10)
+                    torch.nn.utils.clip_grad_norm_(seq_model.parameters(),1)
                     seq_opt.step()
                     
 
                     step+=1
                     total_loss+= loss.item()
-                    if i % 100 == 0:
+                    if i % 100 == 99:
                         #print(data)
                         x_train+= [step]
-                        loss_train += [total_loss/step]
-                        print("Train epoch : {}, step : {} / {}, loss : {}".format(ep, i,bl,loss.item()))
+                        loss_train += [total_loss/100]
+                        total_loss = 0
+                        print("Train epoch : {}, step : {} / {}, loss : {}".format(ep, i+1,bl,loss.item()))
+                scheduler.step()
                 # validation
                 seq_model.eval()
                 bl = len(valid_batches)
@@ -158,7 +164,7 @@ class Solver:
                         
                         print("Valid epoch : {}, step : {} / {}, loss : {}".format(ep, i,bl,loss.item()))
                 x_val+= [step]
-                loss_val += [total_loss/val_step]
+                loss_val += [total_loss/bl]
                 if min_loss > total_loss:
                     min_loss =total_loss
                     best_model = seq_model
@@ -166,7 +172,7 @@ class Solver:
                     torch.save(best_model.state_dict(), "ckpt/best.ckpt")
             self.plot(x_train,loss_train,x_val,loss_val)
             seq_model = best_model
-    def test(self,seq_model,batches,interval,output_file,device,mode='test',model='m1'):
+    def test(self,seq_model,batches,interval,output_file,device,mode='test',model='m1',threshold=0.4):
         result = []
         post = Postprocessing()
         n = 0
@@ -175,14 +181,18 @@ class Solver:
         for i in range(l):
             
             data = torch.LongTensor(batches[i]).to(device)
-            data = data.permute(1,2,0)
+            if model == 'm1':
+                data = data.permute(1,0)
+            else:
+                data = data.permute(1,2,0)
             pred, _ = seq_model(data)
             pred = pred.view(pred.size()[0],pred.size()[1])
             pred = pred.permute(1,0)
             pred = torch.sigmoid(pred)
             if i %500 == 0:
                 print(i/l)
-            #pred = pred > 0.5
+            if model == 'm1':
+                pred = pred > threshold
             
             pred = pred.detach().float()
             #print(pred.size())

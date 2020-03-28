@@ -58,23 +58,15 @@ if __name__ == "__main__":
         pos = 0
         total = 0
         if arg[5] == 'm1':
-            mul_train = []
-            for i,batch in enumerate(train_label):
-                mul_train += [ batch.copy()]
-                for j,label in enumerate(batch):
-                    pos += 1
-                    total += len(train_interval[i][j])-1
-                    for k in train_interval[i][j][1:]:
-                        
-                        mul_train[i][j][k-1] = 1
             
-            mul_val = []
-            for i,batch in enumerate(valid_label):
-                mul_val += [ batch.copy()]
+            for i,batch in enumerate(train_label):
                 for j,label in enumerate(batch):
+                    pos += np.sum(label)
+                    total += label.shape[0]
                     
-                    for k in valid_interval[i][j][1:]:
-                        mul_val[i][j][k-1] = 1
+            
+            
+            
             print(pos)
             print(total)
             criterion =nn.BCEWithLogitsLoss(pos_weight=torch.Tensor([(total-pos)/pos])).to(device)
@@ -82,7 +74,7 @@ if __name__ == "__main__":
             mymodel.embedding.from_pretrained(torch.FloatTensor(embedding))
             if arg[4] == 'pre':
                 mymodel.load_state_dict(torch.load("ckpt/best.ckpt"))
-            solver.train(mymodel,train_data,train_label,mul_train,valid_data,valid_label,mul_val,criterion=criterion,device=device,epoch=int(arg[3]))
+            solver.train(mymodel,train_data,train_label,valid_data,valid_label,criterion=criterion,device=device,epoch=int(arg[3]))
         
         else:
             for i,batch in enumerate(train_label):
@@ -118,15 +110,15 @@ if __name__ == "__main__":
                 pre = Preprocessing()
                 pre.batch_data(dim=dim,modes=['train','valid','test'])
 
-            test_data = np.load("data/test_data_{}_{}.npy".format(dim,arg[6]),allow_pickle=True)
-            test_interval = np.load("data/test_interval_{}_{}.npy".format(dim,arg[6]),allow_pickle=True)
+            test_data = np.load("data/{}_data_{}_{}.npy".format(test_file,dim,arg[6]),allow_pickle=True)
+            test_interval = np.load("data/{}_interval_{}_{}.npy".format(test_file,dim,arg[6]),allow_pickle=True)
         embedding = np.load("embedding.npy",allow_pickle=True)
         if len(test_data[-1]) == 0 :
             test_data = test_data[:-1]
             test_interval = test_interval[:-1]
         print(test_data[0].shape[-1])
         if arg[6] == 'm1' :
-            mymodel = SequenceTaggle(embedding.shape[0],embedding.shape[1],256,1,device,layer=3).to(device)
+            mymodel = SequenceTaggle1(embedding.shape[0],embedding.shape[1],256,1,device,layer=3).to(device)
             mymodel.embedding.from_pretrained(torch.FloatTensor(embedding))
         
         else:

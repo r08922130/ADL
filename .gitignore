@@ -11,3 +11,8 @@ HW1/dict.json
 HW1/v_pre*
 HW1/train.sh
 HW1/test.sh
+HW1_TA/data
+HW1_TA/datasets/*/*.pkl
+HW1_TA/glove*
+HW1_TA/Epoch*
+HW1_TA/ckpt*

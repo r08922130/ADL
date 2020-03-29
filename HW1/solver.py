@@ -10,10 +10,10 @@ class Solver:
     def __init__(self):
         super().__init__()
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    def plot(self,x,y,x_val,y_val):
+    def plot(self,x,y,x_val,y_val,epoch):
         plt.figure()
         plt.plot(x,y,"r",x_val,y_val,"b")
-        plt.show()
+        plt.savefig("Epoch_{}.jpg".format(epoch))
     def train(self,seq_model,batches,labels,valid_batches,valid_labels,device,mode='extractive',
                 criterion=nn.BCEWithLogitsLoss(),epoch=10,lr=0.00001,encoder=None,decoder=None):
         
@@ -92,9 +92,10 @@ class Solver:
                 if min_loss > total_loss:
                     min_loss =total_loss
                     best_model = seq_model
-                if ep %10 == 0:
+                if ep %5 == 0:
+                    self.plot(x_train,loss_train,x_val,loss_val,epoch)
                     torch.save(best_model.state_dict(), "ckpt/best.ckpt")
-            self.plot(x_train,loss_train,x_val,loss_val)
+            self.plot(x_train,loss_train,x_val,loss_val,epoch)
             seq_model = best_model
                     
     def train_sentences(self,seq_model,batches,labels,valid_batches,valid_labels,device,mode='extractive',

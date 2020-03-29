@@ -5,11 +5,17 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
 from postprocessing import Postprocessing
+import matplotlib.pyplot as plt
+
 class Solver:
     def __init__(self):
         super().__init__()
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    def train(self,seq_model,batches,labels,valid_batches,valid_labels,device,mode='extractive',
+    def plot(self,x,y,x_val,y_val,epoch):
+        plt.figure()
+        plt.plot(x,y,"r",x_val,y_val,"b")
+        plt.savefig("Epoch_{}.jpg".format(epoch))
+    def train(self,seq_model,batches,valid_batches,device,mode='extractive',
                 batch_size = 16,epoch=10,lr=0.00001,encoder=None,decoder=None):
         
         min_loss = 100000000
@@ -22,17 +28,21 @@ class Solver:
         x_val = []
         loss_val = []
         if mode == 'extractive':
+            t_bl = len(batches)
+            
+            v_bl = len(valid_batches)
+            
             for ep in range(epoch):
                 seq_model.train()
-                bl = len(batches)
+                
                 total_loss=0
-                bl = bl//batch_size+1
-                for i in range(bl):
+                print(f'{ep} Start')
+                for i,batch in enumerate(batches):
                     seq_opt.zero_grad()
-                    data = batches[i*batch_size:(i+1)*batch_size].to(device)
+                    data = batch['text'].to(device)
                     data = data.permute(1,0)
                     
-                    target = labels[i*batch_size:(i+1)*batch_size].float().to(device)
+                    target = batch['label'].float().to(device)
                     #print(target.size())
                     target = target.permute(1,0)
                     pos = torch.sum(target)
@@ -58,20 +68,22 @@ class Solver:
                         x_train+= [step]
                         loss_train += [total_loss/(i+1)]
                             #print(pred.permute(1,0)[0])
-                        print("Train epoch : {}, step : {} / {}, loss : {}".format(ep, i,bl,loss.item()))
+                        if i == 0 :
+                            print(pred[:,0])
+                            print(target[:,0])
+                        print("Train epoch : {}, step : {} / {}, loss : {}".format(ep, i,t_bl,loss.item()))
                 scheduler.step()
                 # validation
                 seq_model.eval()
-                bl = len(valid_batches)
-                bl = bl//batch_size +1
+               
                 total_loss=0
                 val_step = 0
                 criterion =nn.BCEWithLogitsLoss(pos_weight=torch.Tensor([1])).to(device)
             
-                for i in range(bl):
-                    data = valid_batches[i*batch_size:(i+1)*batch_size].to(device)
+                for i,batch in enumerate(valid_batches):
+                    data =batch['text'].to(device)
                     data = data.permute(1,0)
-                    target = valid_labels[i*batch_size:(i+1)*batch_size].float().to(device)
+                    target = batch['label'].float().to(device)
                     target = target.permute(1,0)
                     
                     
@@ -83,15 +95,16 @@ class Solver:
                     
                     if i % 100 == 0:
                         
-                        print("Valid epoch : {}, step : {} / {}, loss : {}".format(ep, i,bl,loss.item()))
+                        print("Valid epoch : {}, step : {} / {}, loss : {}".format(ep, i,v_bl,loss.item()))
                 x_val+= [step]
-                loss_val += [total_loss/bl]
+                loss_val += [total_loss/v_bl]
                 if min_loss > total_loss:
                     min_loss =total_loss
                     best_model = seq_model
-                if ep %10 == 0:
+                if ep %5 == 0:
+                    self.plot(x_train,loss_train,x_val,loss_val,epoch=ep)
                     torch.save(best_model.state_dict(), "ckpt/best.ckpt")
-            
+            self.plot(x_train,loss_train,x_val,loss_val,epoch=epoch)
             seq_model = best_model
                     
     

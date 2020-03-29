@@ -84,6 +84,8 @@ class Encoder(nn.Module):
         self.hidden_size = hidden_size
         self.device =device
         self.linear = nn.Linear(input_size,hidden_size)
+        self.linear_new = nn.Linear(2*hidden_size,hidden_size)
+
         self.gru = nn.GRU(hidden_size,hidden_size,num_layers= layer, bidirectional=True)
         init.orthogonal_(self.gru.weight_ih_l0.data)
         init.orthogonal_(self.gru.weight_hh_l0.data)

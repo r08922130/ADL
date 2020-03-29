@@ -17,11 +17,12 @@ class Postprocessing:
             if model == 'm1':
                 for i in range(len(intervals[k])-1):
                     isSummary = sum(sentences[k][intervals[k][i]:intervals[k][i+1]])
-                    if max_Sum < isSummary:
-                        max_Sum = isSummary
+                    if max_Sum < isSummary/(intervals[k][i+1]-intervals[k][i]):
+                        max_Sum = isSummary/(intervals[k][i+1]-intervals[k][i])
                         max_index = i
-                    if isSummary > 0.5*(intervals[k][i+1]-intervals[k][i]):
+                    if isSummary > 0.95*(intervals[k][i+1]-intervals[k][i]):
                         result += [i]
+                    
                 if len(result) == 0:
                     result+=[int(max_index)]
             else:

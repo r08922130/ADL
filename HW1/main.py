@@ -69,8 +69,8 @@ if __name__ == "__main__":
             
             print(pos)
             print(total)
-            criterion =nn.BCEWithLogitsLoss(pos_weight=torch.Tensor([(total-pos)/pos])).to(device)
-            mymodel = SequenceTaggle1(embedding.shape[0],embedding.shape[1],256,1,device,layer=3).to(device)
+            criterion =nn.BCEWithLogitsLoss(pos_weight=torch.Tensor([(total-pos)/pos/2])).to(device)
+            mymodel = SequenceTaggle1(embedding.shape[0],embedding.shape[1],256,1,device,layer=4).to(device)
             mymodel.embedding.from_pretrained(torch.FloatTensor(embedding))
             if arg[4] == 'pre':
                 mymodel.load_state_dict(torch.load("ckpt/best.ckpt"))
@@ -84,12 +84,11 @@ if __name__ == "__main__":
                     total += len(batch)
             print(pos)
             print(total)
-            criterion =nn.BCEWithLogitsLoss(pos_weight=torch.Tensor([(total-pos)/pos])).to(device)
             mymodel = SequenceTaggle(embedding.shape[0],embedding.shape[1],256,1,device,layer=3).to(device)
             mymodel.embedding.from_pretrained(torch.FloatTensor(embedding))
             if arg[4] == 'pre':
                 mymodel.load_state_dict(torch.load("ckpt/best.ckpt"))
-            solver.train_sentences(mymodel,train_data,train_label,valid_data,valid_label,criterion=criterion,device=device,epoch=int(arg[3]))
+            solver.train_sentences(mymodel,train_data,train_label,valid_data,valid_label,device=device,epoch=int(arg[3]))
         if not os.path.exists("ckpt"):
             os.mkdir("ckpt")
         
@@ -118,7 +117,7 @@ if __name__ == "__main__":
             test_interval = test_interval[:-1]
         print(test_data[0].shape[-1])
         if arg[6] == 'm1' :
-            mymodel = SequenceTaggle1(embedding.shape[0],embedding.shape[1],256,1,device,layer=3).to(device)
+            mymodel = SequenceTaggle1(embedding.shape[0],embedding.shape[1],256,1,device,layer=4).to(device)
             mymodel.embedding.from_pretrained(torch.FloatTensor(embedding))
         
         else:

@@ -84,6 +84,7 @@ class Encoder(nn.Module):
         self.hidden_size = hidden_size
         self.device =device
         self.linear = nn.Linear(input_size,hidden_size)
+        self.linear_new = nn.Linear(2*hidden_size,hidden_size)
         self.gru = nn.GRU(hidden_size,hidden_size,num_layers= layer, bidirectional=True)
         init.orthogonal_(self.gru.weight_ih_l0.data)
         init.orthogonal_(self.gru.weight_hh_l0.data)
@@ -98,11 +99,13 @@ class Encoder(nn.Module):
         output = torch.tanh(output)
         hidden = self.initHidden(input.size(1),self.layer)
 
-        output , hidden =self.gru_F(output,hidden)
-        output = self.LN_F(output)
-        output = self.dropout(output)
+        gru_output , hidden =self.gru_F(output,hidden)
+        gru_output = self.LN_F(gru_output)
+        gru_output = self.dropout(gru_output)
+        gru_output = torch.cat((gru_output,output),-1)
+        gru_output = self.linear_new(gru_output)
         hidden = self.initHidden(input.size(1),self.layer*2)
-        output , hidden =self.gru(output,hidden)
+        output , hidden =self.gru(gru_output,hidden)
         
         output = self.LN(output)
         output = self.dropout(output)

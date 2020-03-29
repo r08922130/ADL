@@ -40,7 +40,10 @@ class Solver:
                     target = torch.tensor(labels[i]).float().to(device)
                     #print(target.size())
                     target = target.permute(1,0)
-                    
+                    pos = torch.sum(target)
+                    total =  target.size(0) * target.size(1)
+                    criterion =nn.BCEWithLogitsLoss(pos_weight=torch.Tensor([(total-pos)/pos])).to(device)
+
                     #print(m.size())
                     
                     pred, _ = seq_model(data)
@@ -67,6 +70,7 @@ class Solver:
                 bl = len(valid_batches)
                 total_loss=0
                 val_step = 0
+                criterion =nn.BCEWithLogitsLoss(pos_weight=torch.Tensor([1])).to(device)
                 for i in range(bl):
                     data = torch.LongTensor(valid_batches[i]).to(device)
                     data = data.permute(1,0)
@@ -99,7 +103,7 @@ class Solver:
         min_loss = 100000000
         best_model = None
         seq_opt=optim.Adam(seq_model.parameters(), lr=lr)
-        scheduler = lr_scheduler.StepLR(seq_opt,step_size=10,gamma=0.5)
+        scheduler = lr_scheduler.StepLR(seq_opt,step_size=2,gamma=0.85)
         step = 0
         x_train = []
         loss_train =[]
@@ -141,7 +145,7 @@ class Solver:
                         loss_train += [total_loss/100]
                         total_loss = 0
                         print("Train epoch : {}, step : {} / {}, loss : {}".format(ep, i+1,bl,loss.item()))
-                scheduler.step()
+                
                 # validation
                 seq_model.eval()
                 bl = len(valid_batches)
@@ -168,11 +172,14 @@ class Solver:
                 if min_loss > total_loss:
                     min_loss =total_loss
                     best_model = seq_model
-                if ep %10 == 0:
+                else:
+                    scheduler.step()
+                if ep %5 == 0:
                     torch.save(best_model.state_dict(), "ckpt/best.ckpt")
             self.plot(x_train,loss_train,x_val,loss_val)
+            torch.save(best_model.state_dict(), "ckpt/best.ckpt")
             seq_model = best_model
-    def test(self,seq_model,batches,interval,output_file,device,mode='test',model='m1',threshold=0.4):
+    def test(self,seq_model,batches,interval,output_file,device,mode='test',model='m1',threshold=0.8):
         result = []
         post = Postprocessing()
         n = 0
@@ -189,12 +196,17 @@ class Solver:
             pred = pred.view(pred.size()[0],pred.size()[1])
             pred = pred.permute(1,0)
             pred = torch.sigmoid(pred)
+            
             if i %500 == 0:
                 print(i/l)
             if model == 'm1':
                 pred = pred > threshold
             
+
             pred = pred.detach().float()
+            if i == 0 :
+                print(pred[2])
+                print(pred[3])
             #print(pred.size())
             result_dict,n = post.select_sentence(pred.cpu().numpy(),interval[i],result_dict,n,model=model)
             

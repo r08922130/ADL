@@ -2,7 +2,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch
 import torch.nn.init as init
-class SequenceTaggle(nn.Module):
+class SequenceTaggle1(nn.Module):
     def __init__(self,num_embeddings, embedding_dim,hidden_size,output_size,device,layer=1):
         super().__init__()
         self.hidden_size = hidden_size
@@ -35,7 +35,7 @@ class SequenceTaggle(nn.Module):
         #print(output.size())
         return output,hidden
 
-class SequenceTaggle1(nn.Module):
+class SequenceTaggle(nn.Module):
     def __init__(self,num_embeddings, embedding_dim,hidden_size,output_size,device,layer=1):
         super().__init__()
         self.hidden_size = hidden_size
@@ -98,11 +98,13 @@ class Encoder(nn.Module):
         output = torch.tanh(output)
         hidden = self.initHidden(input.size(1),self.layer)
 
-        output , hidden =self.gru_F(output,hidden)
-        output = self.LN_F(output)
-        output = self.dropout(output)
+        gru_output , hidden =self.gru_F(output,hidden)
+        gru_output = self.LN_F(gru_output)
+        gru_output = self.dropout(gru_output)
+        gru_output = torch.cat((gru_output,output),-1)
+        gru_output = self.linear_new(gru_output)
         hidden = self.initHidden(input.size(1),self.layer*2)
-        output , hidden =self.gru(output,hidden)
+        output , hidden =self.gru(gru_output,hidden)
         
         output = self.LN(output)
         output = self.dropout(output)

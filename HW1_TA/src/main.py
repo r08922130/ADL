@@ -16,11 +16,11 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     if arg[1] == "train":
         #python src/main.py train batch_size
-        with open("datasets/seq_tag/train.pkl", 'rb') as f:
+        with open("datasets/seq2seq/train.pkl", 'rb') as f:
             train = pickle.load(f)
-        with open("datasets/seq_tag/valid.pkl", 'rb') as f:
+        with open("datasets/seq2seq/valid.pkl", 'rb') as f:
             valid = pickle.load(f)
-        with open("datasets/seq_tag/embedding.pkl", 'rb') as f:
+        with open("datasets/seq2seq/embedding.pkl", 'rb') as f:
             embedding = pickle.load(f)
         
         batch_size = int(arg[2])

@@ -2,6 +2,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch
 import torch.nn.init as init
+
+MAX_LENGTH = 80
 class SequenceTaggle1(nn.Module):
     def __init__(self,num_embeddings, embedding_dim,hidden_size,output_size,device,layer=1):
         super().__init__()
@@ -84,6 +86,7 @@ class Encoder(nn.Module):
         self.hidden_size = hidden_size
         self.device =device
         self.linear = nn.Linear(input_size,hidden_size)
+        self.linear_new = nn.Linear(2*hidden_size,hidden_size)
         self.gru = nn.GRU(hidden_size,hidden_size,num_layers= layer, bidirectional=True)
         init.orthogonal_(self.gru.weight_ih_l0.data)
         init.orthogonal_(self.gru.weight_hh_l0.data)
@@ -109,5 +112,95 @@ class Encoder(nn.Module):
         output = self.LN(output)
         output = self.dropout(output)
         return output , hidden
+    def initHidden(self,batch,layer):
+        return torch.zeros(layer,batch,self.hidden_size).to(self.device)
+
+class S2S(nn.Module):
+    def __init__(self,num_embeddings, embedding_dim,hidden_size,output_size,device,layer=1,attention=False):
+        super().__init__()
+        self.hidden_size = hidden_size
+        self.embedding = nn.Embedding(num_embeddings, embedding_dim)
+        self.encoder = S2SEncoder(embedding_dim,hidden_size,device,layer=layer,attention=attention)
+        self.decoder = S2SDecoder(embedding_dim,hidden_size,device,layer=layer,attention=attention)
+        self.linear = nn.Linear(hidden_size,output_size)
+        self.attention = attention
+        #self.linear1 = nn.Linear(hidden_size,output_size)
+        self.layer = layer
+        self.device = device
+    def forward(self,input,label):
+        output = self.embedding(input)
+        
+
+        output, hidden = self.encoder(output)
+        label_emb = self.embedding(label)
+        output,hidden, att_w = self.decoder(label_emb,hidden)
+        output = self.linear(output)
+        output = F.log_softmax(output[0], dim=1)
+        return output,hidden,att_w
+class S2SDecoder(nn.Module):
+    def __init__(self,input_size,hidden_size,device,layer=1,batch_size=16,attention=False, max_length=MAX_LENGTH):
+        super().__init__()
+        self.batch_size = batch_size
+        self.layer = layer
+        self.hidden_size = hidden_size
+        self.device =device
+        self.attention = attention
+        self.max_length = max_length
+        self.gru = nn.GRU(hidden_size,hidden_size,num_layers= layer)
+        if attention:
+            self.attn = nn.Linear(self.hidden_size * 2, self.max_length)
+            self.attn_combine = nn.Linear(self.hidden_size * 2, self.hidden_size)
+        init.orthogonal_(self.gru.weight_ih_l0.data)
+        init.orthogonal_(self.gru.weight_hh_l0.data)
+    def forward(self,input,hidden):
+        output = self.linear(input)
+        output = torch.tanh(output)
+        if attention:
+            attn_weights = F.softmax(self.attn(torch.cat((output[0], hidden[0]), 1)), dim=1)
+            attn_applied = torch.bmm(attn_weights.unsqueeze(0),hidden.unsqueeze(0))
+            output = torch.cat((output[0], attn_applied[0]), 1)
+            output = self.attn_combine(output).unsqueeze(0)
+        output = torch.relu(output)
+        output = self.gru(input,hidden)
+        if attention:
+            return output, hidden , attn_weights
+        return output, hidden, None
+class S2SEncoder(nn.Module):
+    def __init__(self,input_size,hidden_size,device,layer=1,batch_size=16,attention=False):
+        super().__init__()
+        self.batch_size = batch_size
+        self.layer = layer
+        self.hidden_size = hidden_size
+        self.device =device
+        self.linear = nn.Linear(input_size,hidden_size)
+        self.linear_new = nn.Linear(2*hidden_size,hidden_size)
+
+        self.gru = nn.GRU(hidden_size,hidden_size,num_layers= layer, bidirectional=True)
+        init.orthogonal_(self.gru.weight_ih_l0.data)
+        init.orthogonal_(self.gru.weight_hh_l0.data)
+        self.LN = nn.LayerNorm(hidden_size*2)
+        self.gru_F = nn.GRU(hidden_size,hidden_size,num_layers= layer)
+        init.orthogonal_(self.gru_F.weight_ih_l0.data)
+        init.orthogonal_(self.gru_F.weight_hh_l0.data)
+        self.LN_F = nn.LayerNorm(hidden_size)
+        self.dropout= nn.Dropout(0.2)
+    def forward(self):
+        output = self.linear(input)
+        output = torch.tanh(output)
+        hidden = self.initHidden(input.size(1),self.layer)
+
+        gru_output , hidden =self.gru_F(output,hidden)
+        gru_output = self.LN_F(gru_output)
+        gru_output = self.dropout(gru_output)
+        gru_output = torch.cat((gru_output,output),-1)
+        gru_output = self.linear_new(gru_output)
+        hidden = self.initHidden(input.size(1),self.layer*2)
+        output , hidden =self.gru(gru_output,hidden)
+        
+        hidden = self.LN(hidden)
+        hidden = self.linear_new(hidden)
+        hidden = torch.tanh(hidden)
+        
+        return hidden
     def initHidden(self,batch,layer):
         return torch.zeros(layer,batch,self.hidden_size).to(self.device)

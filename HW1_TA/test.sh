@@ -1,1 +1,2 @@
-python main.py --test $1 $2 pred 300  m1 $3
+#python src/main.py test/valid TA/pre attention ckpt_path
+python src/main.py valid pre A ckpt/best.ckpt

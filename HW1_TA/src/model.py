@@ -127,43 +127,59 @@ class S2S(nn.Module):
         #self.linear1 = nn.Linear(hidden_size,output_size)
         self.layer = layer
         self.device = device
+        
     def forward(self,input,label):
         output = self.embedding(input)
         
-
-        output, hidden = self.encoder(output)
+        #print(output.size())
+        self.decoder.enc_output,hidden = self.encoder(output)
         label_emb = self.embedding(label)
         output,hidden, att_w = self.decoder(label_emb,hidden)
+        
         output = self.linear(output)
-        output = F.log_softmax(output[0], dim=1)
+        #print(output.size())
         return output,hidden,att_w
 class S2SDecoder(nn.Module):
     def __init__(self,input_size,hidden_size,device,layer=1,batch_size=16,attention=False, max_length=MAX_LENGTH):
         super().__init__()
         self.batch_size = batch_size
         self.layer = layer
+        self.enc_output = None
         self.hidden_size = hidden_size
         self.device =device
         self.attention = attention
         self.max_length = max_length
+        self.linear = nn.Linear(input_size,hidden_size)
         self.gru = nn.GRU(hidden_size,hidden_size,num_layers= layer)
         if attention:
-            self.attn = nn.Linear(self.hidden_size * 2, self.max_length)
+            self.attn = nn.Linear(self.hidden_size * 2, self.hidden_size)
             self.attn_combine = nn.Linear(self.hidden_size * 2, self.hidden_size)
         init.orthogonal_(self.gru.weight_ih_l0.data)
         init.orthogonal_(self.gru.weight_hh_l0.data)
     def forward(self,input,hidden):
         output = self.linear(input)
         output = torch.tanh(output)
-        if attention:
-            attn_weights = F.softmax(self.attn(torch.cat((output[0], hidden[0]), 1)), dim=1)
-            attn_applied = torch.bmm(attn_weights.unsqueeze(0),hidden.unsqueeze(0))
-            output = torch.cat((output[0], attn_applied[0]), 1)
-            output = self.attn_combine(output).unsqueeze(0)
         output = torch.relu(output)
-        output = self.gru(input,hidden)
-        if attention:
-            return output, hidden , attn_weights
+        if self.attention:
+            #print(hidden.size())
+            #attn_weights = F.softmax(self.attn(torch.cat((output[0], hidden[0]), 1)), dim=1)
+            #print(self.enc_output.size())
+            Q = self.attn(self.enc_output)
+            Q = Q.permute(1,0,2)
+            K_T = hidden.permute(1,2,0)
+            att_weight = F.softmax(torch.bmm(Q,K_T),dim=-1)
+            #print(att_weight.size())
+            att_ap = torch.sum(torch.bmm(att_weight,hidden.permute(1,0,2)),dim=1)
+            att_ap = att_ap.unsqueeze(0)
+            #print(att_ap.size())
+            
+        output,hidden = self.gru(output,hidden)
+        if self.attention:
+            #combine output and attap
+            output = torch.cat((att_ap,output),dim=-1)
+            output = self.attn_combine(output)
+            output = torch.relu(output)
+            return output, hidden , att_weight
         return output, hidden, None
 class S2SEncoder(nn.Module):
     def __init__(self,input_size,hidden_size,device,layer=1,batch_size=16,attention=False):
@@ -184,7 +200,8 @@ class S2SEncoder(nn.Module):
         init.orthogonal_(self.gru_F.weight_hh_l0.data)
         self.LN_F = nn.LayerNorm(hidden_size)
         self.dropout= nn.Dropout(0.2)
-    def forward(self):
+    def forward(self,input):
+        
         output = self.linear(input)
         output = torch.tanh(output)
         hidden = self.initHidden(input.size(1),self.layer)
@@ -196,11 +213,14 @@ class S2SEncoder(nn.Module):
         gru_output = self.linear_new(gru_output)
         hidden = self.initHidden(input.size(1),self.layer*2)
         output , hidden =self.gru(gru_output,hidden)
-        
+        #print(hidden[1::2].size())
+        hidden_out , hidden_out2 = hidden[::2],hidden[1::2]
+        hidden = torch.cat((hidden_out,hidden_out2),dim=2)
+
         hidden = self.LN(hidden)
         hidden = self.linear_new(hidden)
         hidden = torch.tanh(hidden)
         
-        return hidden
+        return output,hidden
     def initHidden(self,batch,layer):
         return torch.zeros(layer,batch,self.hidden_size).to(self.device)

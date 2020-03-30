@@ -2,8 +2,7 @@ import numpy as np
 import torch
 import torch.nn as nn 
 import sys
-from model import SequenceTaggle
-from model import SequenceTaggle1
+from model import S2S
 import os
 from solver import Solver
 import json
@@ -50,10 +49,11 @@ if __name__ == "__main__":
         #valid_key = batches['key']
         #valid_sent = batches['sent_range']
         emb_w = embedding.vectors
-        #print(emb_w[0])
-        mymodel = SequenceTaggle(emb_w.size(0),emb_w.size(1),256,1,device,layer=4).to(device)
+        vocab = embedding.vocab
+        attention = True if arg[4] == 'A' else False
+        mymodel = S2S(emb_w.size(0),emb_w.size(1),256,len(emb_w),device,layer=2,attention=attention).to(device)
         mymodel.embedding.from_pretrained(emb_w)
         """if arg[4] == 'pre':
             mymodel.load_state_dict(torch.load("ckpt/best.ckpt"))"""
-        solver.train(mymodel,train_batches,valid_batches,batch_size=batch_size,device=device,epoch=int(arg[3]))
+        solver.train(mymodel,train_batches,valid_batches,attention=attention,batch_size=batch_size,device=device,epoch=int(arg[3]))
     

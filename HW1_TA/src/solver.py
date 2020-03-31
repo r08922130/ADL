@@ -174,38 +174,47 @@ class Solver:
             seq_model = best_model
                     
     
-    def test(self,seq_model,batches,interval,output_file,device,batch_size=16,mode='test',model='m1',threshold=0.4):
+    def test(self,seq_model,batches,device,batch_size=16,mode='test'):
         result = []
         post = Postprocessing()
         n = 0
         result_dict = []
         l = len(batches)
-        for i in range(l):
-            result=[]
-            pred, hidden , att = seq_model(data,torch.LongTensor([1]).view(1,-1).to(device))
+        max_len = 300
+        for i,batch in enumerate(batches):
+            
+            bs = batch['text'].size(0)
+            #print(bs)
+            data = batch['text'].to(device)
+            data = data.permute(1,0)
+            pred, hidden , att = seq_model(data,torch.LongTensor([1]*bs).view(1,-1).to(device))
             topv,topi = pred.topk(1)
-            result += [topi.item()]
+            #print(topi.view(1,-1))
+            #TODO result += [topi.item()]
+            result = topi.view(1,-1)
             #print(target[0:1].size())
             #print(pred.size())
             #print(topi.view(1,-1).detach().size())
             
             
-            for i in range(len(target[1:-1])):
+            for k in range(max_len-1):
                 topi = topi.view(1,-1).detach()
                 #print(target.permute(1,0)[:,i+1].view(-1,1))
                 pred, hidden , att = seq_model.decoder(seq_model.embedding(topi),hidden)
                 pred = seq_model.linear(pred)
                 #print(pred.permute(1,2,0).size(),target.permute(1,0)[:,i+1].view(-1,1).size())
                 topv,topi = pred.topk(1)
-                if topi.item == 2:
-                    break
-                result += [topi.item()]
-
+                result = torch.cat((result,topi.view(1,-1)),dim=0)
+                #print(result.size())
+                """if topi.item == 2:
+                    break"""
+                
+                #result += [topi.item()]
+            result_dict += [result.permute(1,0).cpu().numpy()]
                 
                 
-            if i %500 == 0:
-                print(i/l)
-            result_dict += [result]
+            if (i+1) %500 == 0:
+                print((i+1)/l)
             
             
             #print(pred.size())

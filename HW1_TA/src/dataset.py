@@ -29,7 +29,7 @@ class Seq2SeqDataset(Dataset):
         batch = {}
         for key in ['id', 'len_text', 'len_summary']:
             batch[key] = [sample[key] for sample in samples]
-
+        
         for key in ['text', 'summary', 'attention_mask']:
             to_len = max([len(sample[key]) for sample in samples])
             padded = pad_to_len(

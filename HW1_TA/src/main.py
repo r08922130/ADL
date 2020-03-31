@@ -8,6 +8,10 @@ from solver import Solver
 import json
 import pickle
 from dataset import SeqTaggingDataset
+from dataset import Seq2SeqDataset
+from postprocessing import Postprocessing
+from utils import Tokenizer
+import preprocess_seq2seq
 
 if __name__ == "__main__":
     
@@ -62,14 +66,19 @@ if __name__ == "__main__":
             embedding = pickle.load(f)
         emb_w = embedding.vectors
         vocab = embedding.vocab
+        print(len(vocab))
         attention = True if arg[3] == 'A' else False
         if arg[1] == 'valid':
             #valid
             with open("datasets/seq2seq/valid.pkl", 'rb') as f:
                 data = pickle.load(f)
+            mode = 'valid'
+            
         else:
             #test
             if arg[2] == 'TA':
+                with open(arg[1]) as f:
+                    test = [json.loads(line) for line in f]
                 with open( 'datasets/seq2seq/config.json') as f:
                     config = json.load(f)
                 tokenizer = Tokenizer(lower=config['lower_case'])
@@ -80,11 +89,27 @@ if __name__ == "__main__":
             else:
                 with open("datasets/seq2seq/test.pkl", 'rb') as f:
                     data = pickle.load(f)
-        data_batches = data.collate_fn(data)
+            
+            mode = 'test'
+        batch_size = int(arg[6])
+        l = len(data) 
+        if l%batch_size==0:    
+            bl = l//batch_size
+        else:
+            bl = l//batch_size+1
+        
+        data_batches = [data.collate_fn([data[j] for j in range(i*batch_size,min((i+1)*batch_size,l))]) for i in range(bl)]
+        print(data_batches[0]['text'])
+        
+        
         mymodel = S2S(emb_w.size(0),emb_w.size(1),256,len(emb_w),device,layer=2,attention=attention).to(device)
         mymodel.embedding.from_pretrained(emb_w)
-        mymodel.load_state_dict(torch.load(arg[4],map_location= device))
+        if os.path.isfile(arg[4]):
+            mymodel.load_state_dict(torch.load(arg[4],map_location= device))
         #solver.test
-        if arg[1] == 'valid':
-            #output true label
-            pass
+        result = solver.test(mymodel,data_batches,device,mode=mode)
+        post = Postprocessing()
+        dict_result = []
+        dict_result = post.indiesToSentences(result,dict_result,vocab,tokenizer,mode=mode)
+        post.toJson(arg[5],dict_result)  
+            

@@ -88,7 +88,13 @@ def create_seq2seq_dataset(samples, save_path, config, padding=0):
     )
     with open(save_path, 'wb') as f:
         pickle.dump(dataset, f)
-
+def create_seq2seq_dataset_without_save(samples, config, padding=0):
+    dataset = Seq2SeqDataset(
+        samples, padding=padding,
+        max_text_len=config.get('max_text_len') or 300,
+        max_summary_len=config.get('max_summary_len') or 80
+    )
+    return dataset
 
 def _parse_args():
     parser = argparse.ArgumentParser(description="")

@@ -8,6 +8,7 @@ from solver import Solver
 import json
 import pickle
 from dataset import SeqTaggingDataset
+
 if __name__ == "__main__":
     
     arg = sys.argv
@@ -40,7 +41,7 @@ if __name__ == "__main__":
         #train_key = batches['key']
         #train_sent = batches['sent_range']
 
-        valid_batches = [train.collate_fn([valid[j] for j in range(i*batch_size,min((i+1)*batch_size,v_l))]) for i in range(v_bl)]
+        valid_batches = [valid.collate_fn([valid[j] for j in range(i*batch_size,min((i+1)*batch_size,v_l))]) for i in range(v_bl)]
         #print(batches['text'][0:batch_size])
         #valid_data = batches['text']
         #valid_label = batches['label']
@@ -56,4 +57,34 @@ if __name__ == "__main__":
         """if arg[4] == 'pre':
             mymodel.load_state_dict(torch.load("ckpt/best.ckpt"))"""
         solver.train(mymodel,train_batches,valid_batches,attention=attention,batch_size=batch_size,device=device,epoch=int(arg[3]))
-    
+    else:
+        with open("datasets/seq2seq/embedding.pkl", 'rb') as f:
+            embedding = pickle.load(f)
+        emb_w = embedding.vectors
+        vocab = embedding.vocab
+        attention = True if arg[3] == 'A' else False
+        if arg[1] == 'valid':
+            #valid
+            with open("datasets/seq2seq/valid.pkl", 'rb') as f:
+                data = pickle.load(f)
+        else:
+            #test
+            if arg[2] == 'TA':
+                with open( 'datasets/seq2seq/config.json') as f:
+                    config = json.load(f)
+                tokenizer = Tokenizer(lower=config['lower_case'])
+                tokenizer.set_vocab(embedding.vocab)
+                data = preprocess_seq2seq.create_seq2seq_dataset_without_save(
+                    preprocess_seq2seq.process_samples(tokenizer, test),
+                    config,tokenizer.pad_token_id)
+            else:
+                with open("datasets/seq2seq/test.pkl", 'rb') as f:
+                    data = pickle.load(f)
+        data_batches = data.collate_fn(data)
+        mymodel = S2S(emb_w.size(0),emb_w.size(1),256,len(emb_w),device,layer=2,attention=attention).to(device)
+        mymodel.embedding.from_pretrained(emb_w)
+        mymodel.load_state_dict(torch.load(arg[4],map_location= device))
+        #solver.test
+        if arg[1] == 'valid':
+            #output true label
+            pass

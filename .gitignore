@@ -16,3 +16,4 @@ HW1_TA/datasets/*/*.pkl
 HW1_TA/glove*
 HW1_TA/Epoch*
 HW1_TA/ckpt*
+HW1/seqTAG*

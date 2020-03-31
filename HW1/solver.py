@@ -20,7 +20,7 @@ class Solver:
         min_loss = 100000000
         best_model = None
         seq_opt=optim.RMSprop(seq_model.parameters(), lr=lr)
-        scheduler = lr_scheduler.StepLR(seq_opt,step_size=10,gamma=0.5)
+        scheduler = lr_scheduler.StepLR(seq_opt,step_size=2,gamma=0.85)
         step = 0
         x_train = []
         loss_train =[]
@@ -58,13 +58,15 @@ class Solver:
                     
                     step+=1
                     total_loss+= loss.item()
-                    if i % 100 == 0:
+                    
+
+                    if i == 0 or (i+1) % 100 == 0:
                         #print(data)
                         x_train+= [step]
                         loss_train += [total_loss/(i+1)]
                             #print(pred.permute(1,0)[0])
-                        print("Train epoch : {}, step : {} / {}, loss : {}".format(ep, i,bl,loss.item()))
-                scheduler.step()
+                        print("Train epoch : {}, step : {} / {}, loss : {}".format(ep, i+1,bl,total_loss/(i+1)))
+                
                 # validation
                 seq_model.eval()
                 bl = len(valid_batches)
@@ -84,14 +86,16 @@ class Solver:
                     total_loss += loss.item()
                     val_step+=1
                     
-                    if i % 100 == 0:
+                    if (i+1) % 100 == 0:
                         
-                        print("Valid epoch : {}, step : {} / {}, loss : {}".format(ep, i,bl,loss.item()))
+                        print("Valid epoch : {}, step : {} / {}, loss : {}".format(ep, i+1,bl,total_loss/(i+1)))
                 x_val+= [step]
                 loss_val += [total_loss/bl]
                 if min_loss > total_loss:
                     min_loss =total_loss
                     best_model = seq_model
+                else:
+                    scheduler.step()
                 if ep %5 == 0:
                     self.plot(x_train,loss_train,x_val,loss_val,epoch)
                     torch.save(best_model.state_dict(), "ckpt/best.ckpt")
@@ -140,12 +144,12 @@ class Solver:
 
                     step+=1
                     total_loss+= loss.item()
-                    if i % 100 == 99:
+                    if i == 0 or (i+1) % 100 == 0:
                         #print(data)
                         x_train+= [step]
-                        loss_train += [total_loss/100]
-                        total_loss = 0
-                        print("Train epoch : {}, step : {} / {}, loss : {}".format(ep, i+1,bl,loss.item()))
+                        loss_train += [total_loss/(i+1)]
+                            #print(pred.permute(1,0)[0])
+                        print("Train epoch : {}, step : {} / {}, loss : {}".format(ep, i+1,bl,total_loss/(i+1)))
                 
                 # validation
                 seq_model.eval()
@@ -165,9 +169,9 @@ class Solver:
 
                     total_loss += loss.item()
                     val_step +=1
-                    if i % 100 == 0:
+                    if (i+1) % 100 == 0:
                         
-                        print("Valid epoch : {}, step : {} / {}, loss : {}".format(ep, i,bl,loss.item()))
+                        print("Valid epoch : {}, step : {} / {}, loss : {}".format(ep, i+1,bl,total_loss/(i+1)))
                 x_val+= [step]
                 loss_val += [total_loss/bl]
                 if min_loss > total_loss:
@@ -209,7 +213,7 @@ class Solver:
                 print(pred[2])
                 print(pred[3])
             #print(pred.size())
-            result_dict,n = post.select_sentence(pred.cpu().numpy(),interval[i],result_dict,n,model=model)
+            result_dict,n = post.select_sentence(pred.cpu().numpy(),interval[i],result_dict,n,mode=mode,model=model)
             
             #print(pred.size())
         if mode == 'test':

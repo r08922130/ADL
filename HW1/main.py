@@ -70,7 +70,9 @@ if __name__ == "__main__":
             print(pos)
             print(total)
             criterion =nn.BCEWithLogitsLoss(pos_weight=torch.Tensor([(total-pos)/pos/2])).to(device)
+
             mymodel = SequenceTaggle1(embedding.shape[0],embedding.shape[1],256,1,device,layer=4).to(device)
+            print(mymodel)
             mymodel.embedding.from_pretrained(torch.FloatTensor(embedding))
             if arg[4] == 'pre':
                 mymodel.load_state_dict(torch.load("ckpt/best.ckpt"))
@@ -104,6 +106,7 @@ if __name__ == "__main__":
             dic = json.load(open("dict.json"))
             pre = Preprocessing()
             test_data, test_interval = pre.word_to_index(dic,test_file)
+            mode='test'
         else:
             if not os.path.isfile("embedding.npy") :
                 pre = Preprocessing()
@@ -111,6 +114,7 @@ if __name__ == "__main__":
 
             test_data = np.load("data/{}_data_{}_{}.npy".format(test_file,dim,arg[6]),allow_pickle=True)
             test_interval = np.load("data/{}_interval_{}_{}.npy".format(test_file,dim,arg[6]),allow_pickle=True)
+            mode=test_file
         embedding = np.load("embedding.npy",allow_pickle=True)
         if len(test_data[-1]) == 0 :
             test_data = test_data[:-1]
@@ -129,7 +133,7 @@ if __name__ == "__main__":
             else:
                 mymodel.load_state_dict(torch.load(arg[7],map_location= device))
         
-        solver.test(mymodel,test_data,test_interval,arg[3],device=device,mode='test',model=arg[6])
+        solver.test(mymodel,test_data,test_interval,arg[3],device=device,mode=mode,model=arg[6])
 
         
         

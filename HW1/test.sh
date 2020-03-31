@@ -1,1 +1,1 @@
-python main.py --test $1 $2 pred 300  m1 $3
+python main.py --test $1 $2 TA 300 m1 seqTAG.ckpt

@@ -3,7 +3,6 @@ import torch.nn.functional as F
 import torch
 import torch.nn.init as init
 
-MAX_LENGTH = 80
 class SequenceTaggle1(nn.Module):
     def __init__(self,num_embeddings, embedding_dim,hidden_size,output_size,device,layer=1):
         super().__init__()
@@ -140,7 +139,7 @@ class S2S(nn.Module):
         #print(output.size())
         return output,hidden,att_w
 class S2SDecoder(nn.Module):
-    def __init__(self,input_size,hidden_size,device,layer=1,batch_size=16,attention=False, max_length=MAX_LENGTH):
+    def __init__(self,input_size,hidden_size,device,layer=1,batch_size=16,attention=False):
         super().__init__()
         self.batch_size = batch_size
         self.layer = layer
@@ -148,7 +147,6 @@ class S2SDecoder(nn.Module):
         self.hidden_size = hidden_size
         self.device =device
         self.attention = attention
-        self.max_length = max_length
         self.linear = nn.Linear(input_size,hidden_size)
         self.gru = nn.GRU(hidden_size,hidden_size,num_layers= layer)
         if attention:

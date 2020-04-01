@@ -189,6 +189,7 @@ class Solver:
         post = Postprocessing()
         n = 0
         result_dict = []
+        result_hist = []
         l = len(batches)
         for i in range(l):
             
@@ -202,20 +203,27 @@ class Solver:
             pred = pred.permute(1,0)
             pred = torch.sigmoid(pred)
             
-            if i %500 == 0:
-                print(i/l)
+            if i %10 == 0:
+                print(f"{i+1}/{l}")
             if model == 'm1':
                 pred = pred > threshold
             
 
             pred = pred.detach().float()
-            if i == 0 :
-                print(pred[2])
-                print(pred[3])
+            #if i == 0 :
+                #print(pred[2])
+                #print(pred[3])
             #print(pred.size())
-            result_dict,n = post.select_sentence(pred.cpu().numpy(),interval[i],result_dict,n,mode=mode,model=model)
+            result_dict,result_hist,n = post.select_sentence(pred.cpu().numpy(),interval[i],result_dict,result_hist,n,mode=mode,model=model)
             
             #print(pred.size())
+        # show relative location
+        # hist shape (# batches, batch size, predicts)
+        num_of_bins = 100
+        plt.figure()
+        plt.hist(result_hist,bins=num_of_bins,range=(0,1))
+        plt.savefig("extractive.jpg")
+
         if mode == 'test':
             print('convert result to jsonl ...........')
             post.toJson(output_file,result_dict)

@@ -43,7 +43,7 @@ class Postprocessing:
                 f.write('\n')
     def indiesToSentences(self,sentences,result_dict,vocab,tokenizer,mode='valid'):
         #sentences shape (# batches , batch size, seq len)
-        tokenizer = Tokenizer(vocab,True)
+        n = 0
         if mode == 'test':
             id_start = 3000000
         else:
@@ -53,6 +53,7 @@ class Postprocessing:
                 s = self.removeAfterEOS(sentence)
                 result = tokenizer.decode(s)
                 result_dict+=[{'id' : str(n+id_start),'predict':result }] 
+                n+=1
         return result_dict
     def removeAfterEOS(self,sentence):
         stop = -1

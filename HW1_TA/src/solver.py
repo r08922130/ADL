@@ -43,7 +43,7 @@ class Solver:
 
                 for i,batch in enumerate(batches):
                     seq_opt.zero_grad()
-                    teacher_force = True if random.random() < 0.5 else False
+                    teacher_force = True if random.random() < 0.7 else False
                     bs = batch['text'].size(0)
                     #print(bs)
                     data = batch['text'].to(device)
@@ -70,12 +70,12 @@ class Solver:
                             topi = topi.view(1,-1).detach()
                             for k in range(len(target[1:-1])):
                                 
-                                pred, hidden , att = seq_model.decoder(seq_model.embedding(target[k].view(1,-1)),hidden)
+                                pred, hidden , att = seq_model.decoder(seq_model.embedding(target[k+1].view(1,-1)),hidden)
                                 pred = seq_model.linear(pred)
-                                loss += criterion(pred.permute(1,2,0), target.permute(1,0)[:,k+1].view(-1,1)) 
+                                loss += criterion(pred.permute(1,2,0), target.permute(1,0)[:,k+2].view(-1,1)) 
                                 topv,topi = pred.topk(1)
                                 topi = topi.view(1,-1).detach()
-                            loss = loss/len(target[1:-1]) 
+                            loss = loss/(len(target)-1)
                         else:
                         #bos
                             pred, hidden , att = seq_model(data,torch.LongTensor([1]*bs).view(1,-1).to(device))
@@ -90,10 +90,10 @@ class Solver:
                                 pred, hidden , att = seq_model.decoder(seq_model.embedding(topi),hidden)
                                 pred = seq_model.linear(pred)
                                 #print(pred.permute(1,2,0).size(),target.permute(1,0)[:,i+1].view(-1,1).size())
-                                loss += criterion(pred.permute(1,2,0), target.permute(1,0)[:,k+1].view(-1,1)) 
+                                loss += criterion(pred.permute(1,2,0), target.permute(1,0)[:,k+2].view(-1,1)) 
                                 topv,topi = pred.topk(1)
                                 topi = topi.view(1,-1).detach()
-                            loss = loss/len(target[1:-1])  
+                            loss = loss/(len(target)-1) 
                             
                             
                     total_loss += loss.item() 
@@ -151,10 +151,10 @@ class Solver:
                             pred, hidden , att = seq_model.decoder(seq_model.embedding(topi),hidden)
                             pred = seq_model.linear(pred)
                             #print(pred.permute(1,2,0).size(),target.permute(1,0)[:,i+1].view(-1,1).size())
-                            loss += criterion(pred.permute(1,2,0), target.permute(1,0)[:,k+1].view(-1,1)) 
+                            loss += criterion(pred.permute(1,2,0), target.permute(1,0)[:,k+2].view(-1,1)) 
                             topv,topi = pred.topk(1)
                             topi = topi.view(1,-1).detach()
-                        loss = loss/len(target[1:-1])
+                        loss = loss/(len(target)-1)
                     val_step+=1
                     total_loss+= loss.item()
                     if (i+1) % 100 == 0:
@@ -190,7 +190,7 @@ class Solver:
             pred, hidden , att = seq_model(data,torch.LongTensor([1]*bs).view(1,-1).to(device))
             topv,topi = pred.topk(1)
             #print(topi.view(1,-1))
-            #TODO result += [topi.item()]
+            
             result = topi.view(1,-1)
             #print(target[0:1].size())
             #print(pred.size())
@@ -213,8 +213,8 @@ class Solver:
             result_dict += [result.permute(1,0).cpu().numpy()]
                 
                 
-            if (i+1) %500 == 0:
-                print((i+1)/l)
+            if (i+1) %10 == 0:
+                print(f"{i+1}/{l}")
             
             
             #print(pred.size())

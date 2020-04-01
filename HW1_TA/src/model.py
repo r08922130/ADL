@@ -163,11 +163,12 @@ class S2SDecoder(nn.Module):
             #attn_weights = F.softmax(self.attn(torch.cat((output[0], hidden[0]), 1)), dim=1)
             #print(self.enc_output.size())
             Q = self.attn(self.enc_output)
+            
             Q = Q.permute(1,0,2)
-            K_T = hidden.permute(1,2,0)
-            att_weight = F.softmax(torch.bmm(Q,K_T),dim=-1)
-            #print(att_weight.size())
-            att_ap = torch.sum(torch.bmm(att_weight,hidden.permute(1,0,2)),dim=1)
+            K_T = hidden[-1].unsqueeze(2)
+            att_weight = F.softmax(torch.bmm(Q,K_T),dim=1)
+            att_ap = torch.sum(torch.bmm(att_weight,hidden[-1].unsqueeze(1)),dim=1)
+            #print(att_ap.size())
             att_ap = att_ap.unsqueeze(0)
             #print(att_ap.size())
             

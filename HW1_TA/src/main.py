@@ -68,6 +68,11 @@ if __name__ == "__main__":
         vocab = embedding.vocab
         print(len(vocab))
         attention = True if arg[3] == 'A' else False
+        with open( 'datasets/seq2seq/config.json') as f:
+            print("Load Config.......")
+            config = json.load(f)
+            tokenizer = Tokenizer(lower=config['lower_case'])
+            tokenizer.set_vocab(embedding.vocab)
         if arg[1] == 'valid':
             #valid
             with open("datasets/seq2seq/valid.pkl", 'rb') as f:
@@ -79,10 +84,7 @@ if __name__ == "__main__":
             if arg[2] == 'TA':
                 with open(arg[1]) as f:
                     test = [json.loads(line) for line in f]
-                with open( 'datasets/seq2seq/config.json') as f:
-                    config = json.load(f)
-                tokenizer = Tokenizer(lower=config['lower_case'])
-                tokenizer.set_vocab(embedding.vocab)
+                
                 data = preprocess_seq2seq.create_seq2seq_dataset_without_save(
                     preprocess_seq2seq.process_samples(tokenizer, test),
                     config,tokenizer.pad_token_id)
@@ -99,7 +101,7 @@ if __name__ == "__main__":
             bl = l//batch_size+1
         
         data_batches = [data.collate_fn([data[j] for j in range(i*batch_size,min((i+1)*batch_size,l))]) for i in range(bl)]
-        print(data_batches[0]['text'])
+        #print(data_batches[0]['text'])
         
         
         mymodel = S2S(emb_w.size(0),emb_w.size(1),256,len(emb_w),device,layer=2,attention=attention).to(device)

@@ -64,7 +64,7 @@ class Tokenizer:
                 for token in self.tokenize(sentence)]
 
     def decode(self, indices):
-        return ' '.join([self.vocab[index] for index in indices])
+        return ' '.join([self.vocab[index] for index in indices if index != 0])
 
 
 class Embedding:

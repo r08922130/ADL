@@ -18,3 +18,4 @@ HW1_TA/Epoch*
 HW1_TA/ckpt*
 HW1/seqTAG*
 HW1_TA/*.jsonl
+HW1_TA/*.ckpt

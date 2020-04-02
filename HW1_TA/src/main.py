@@ -109,7 +109,7 @@ if __name__ == "__main__":
         if os.path.isfile(arg[4]):
             mymodel.load_state_dict(torch.load(arg[4],map_location= device))
         #solver.test
-        result = solver.test(mymodel,data_batches,device,mode=mode)
+        result = solver.test(mymodel,data_batches,device,tokenizer,batch_size=arg[6],mode=mode)
         post = Postprocessing()
         dict_result = []
         dict_result = post.indiesToSentences(result,dict_result,vocab,tokenizer,mode=mode)

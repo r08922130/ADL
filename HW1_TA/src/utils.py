@@ -63,8 +63,8 @@ class Tokenizer:
         return [self.token_to_id(token)
                 for token in self.tokenize(sentence)]
 
-    def decode(self, indices):
-        return ' '.join([self.vocab[index] for index in indices if index != 0])
+    def decode(self, indices,not_ignore=False):
+        return ' '.join([self.vocab[index] for index in indices if index != 0 or not_ignore])
 
 
 class Embedding:

@@ -7,7 +7,7 @@ import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
 from postprocessing import Postprocessing
 import matplotlib.pyplot as plt
-
+import matplotlib.ticker as ticker
 class Solver:
     def __init__(self):
         super().__init__()
@@ -173,14 +173,72 @@ class Solver:
             self.plot(x_train,loss_train,x_val,loss_val,epoch=epoch)
             seq_model = best_model
                     
-    
-    def test(self,seq_model,batches,device,batch_size=16,mode='test'):
+    def findEOS(self,sample):
+        for i,word in enumerate(sample):
+            if word == 2:
+                return i
+    def showAttention(self,input_sentence, output_words, attentions,tokenizer,p,s):
+        # Set up figure with colorbar
+        fig = plt.figure(figsize=(18,9))
+        ax = fig.add_subplot(111)
+        cax = ax.matshow(attentions.detach().cpu().numpy(), cmap='bone')
+        fig.colorbar(cax)
+
+        # Set up axes
+        ax.set_xticklabels([""]+tokenizer.decode(input_sentence,not_ignore=True).split(" "), rotation=90)
+        #print(output_words.detach().cpu().numpy())
+        
+        ax.set_yticklabels([""]+tokenizer.decode(output_words,not_ignore=True).split(" "))
+
+        # Show label at every tick
+        ax.xaxis.set_major_locator(ticker.MultipleLocator(1))
+        ax.yaxis.set_major_locator(ticker.MultipleLocator(1))
+
+        plt.savefig(f'{p}*32_{s}_att.png')
+    def test(self,seq_model,batches,device,tokenizer,batch_size=16,mode='test'):
         result = []
         post = Postprocessing()
         n = 0
         result_dict = []
         l = len(batches)
+         
         max_len = 300
+        for i in range(4):
+            p_batch = [93//batch_size,563//batch_size,607//batch_size,649//batch_size]
+            sen = [93%batch_size,563%batch_size,607%batch_size,649%batch_size]
+
+            sample = batches[p_batch[i]]['text'][sen[i]].unsqueeze(1)
+            stop = self.findEOS(sample)
+            data = sample.to(device)
+            pred, hidden , atts = seq_model(data,torch.LongTensor([1]).view(1,-1).to(device))
+            
+            topv,topi = pred.topk(1)    
+            result = topi.view(1,-1)
+            
+            for k in range(max_len-1):
+                #print(result.size())
+                topi = topi.view(1,-1).detach()
+                #print(target.permute(1,0)[:,i+1].view(-1,1))
+                pred, hidden , att = seq_model.decoder(seq_model.embedding(topi),hidden)
+                atts = torch.cat((atts,att),dim=0)
+                pred = seq_model.linear(pred)
+                #print(pred.permute(1,2,0).size(),target.permute(1,0)[:,i+1].view(-1,1).size())
+                topv,topi = pred.topk(1)
+                
+                result = torch.cat((result,topi.view(1,-1)),dim=0)
+                if topi.item() == 2:
+                    break
+                #print(result.size())
+                """if topi.item == 2:
+                    break"""
+                
+                #result += [topi.item()]
+            atts = atts.squeeze(1)[:,:stop]
+            result = result.squeeze(1)
+
+            #print(sample)
+            #print(result)
+            self.showAttention(sample,result,atts,tokenizer,p_batch[i],sen[i])
         for i,batch in enumerate(batches):
             
             bs = batch['text'].size(0)

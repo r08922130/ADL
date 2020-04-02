@@ -22,7 +22,7 @@ class Solver:
         min_loss = 100000000
         best_model = None
         seq_opt=optim.RMSprop(seq_model.parameters(), lr=lr)
-        scheduler = lr_scheduler.StepLR(seq_opt,step_size=2,gamma=0.9)
+        scheduler = lr_scheduler.StepLR(seq_opt,step_size=1,gamma=0.5)
         step = 0
         x_train = []
         loss_train =[]
@@ -43,7 +43,7 @@ class Solver:
 
                 for i,batch in enumerate(batches):
                     seq_opt.zero_grad()
-                    teacher_force = True if random.random() < 0.7 else False
+                    teacher_force = True if random.random() < 0.5 else False
                     bs = batch['text'].size(0)
                     #print(bs)
                     data = batch['text'].to(device)
@@ -53,13 +53,13 @@ class Solver:
                     
                     target = target.permute(1,0)
                     
-                    if not attention:
-                        pred, _ ,_= seq_model(data,target[:-1])
-                        pred = pred.permute(1,2,0)
-                        target = target.permute(1,0)
-                        #pred = pred.view(pred.size()[0],pred.size()[1])
-                        loss = criterion(pred, target[:,1:]) 
-                    else:
+                    #if not attention:
+                    pred, _ ,_= seq_model(data,target[:-1])
+                    pred = pred.permute(1,2,0)
+                    target = target.permute(1,0)
+                    #pred = pred.view(pred.size()[0],pred.size()[1])
+                    loss = criterion(pred, target[:,1:]) 
+                    """else:
                         
                         if teacher_force:
                             pred, hidden , att = seq_model(data,torch.LongTensor([1]*bs).view(1,-1).to(device))
@@ -93,7 +93,7 @@ class Solver:
                                 loss += criterion(pred.permute(1,2,0), target.permute(1,0)[:,k+2].view(-1,1)) 
                                 topv,topi = pred.topk(1)
                                 topi = topi.view(1,-1).detach()
-                            loss = loss/(len(target)-1) 
+                            loss = loss/(len(target)-1) """
                             
                             
                     total_loss += loss.item() 
@@ -119,7 +119,7 @@ class Solver:
                 # validation
                 seq_model.eval()
                
-                total_loss=0
+                v_total_loss=0
                 val_step = 0
             
                 for i,batch in enumerate(valid_batches):
@@ -129,15 +129,15 @@ class Solver:
                     
                     target = batch['summary'].to(device)
                     target = target.permute(1,0)
-                    if not attention:
+                    #if not attention:
                         
                         #print(target.size())
-                        pred, _ ,_= seq_model(data,target[:-1])
-                        pred = pred.permute(1,2,0)
-                        target = target.permute(1,0)
-                        #pred = pred.view(pred.size()[0],pred.size()[1])
-                        loss = criterion(pred, target[:,1:]) 
-                    else:
+                    pred, _ ,_= seq_model(data,target[:-1])
+                    pred = pred.permute(1,2,0)
+                    target = target.permute(1,0)
+                    #pred = pred.view(pred.size()[0],pred.size()[1])
+                    loss = criterion(pred, target[:,1:]) 
+                    """else:
                     #print(m.size())
                         pred, hidden , att = seq_model(data,torch.LongTensor([1]*bs).view(1,-1).to(device))
                         loss = criterion(pred.permute(1,2,0), target.permute(1,0)[:,1].view(-1,1)) 
@@ -154,18 +154,18 @@ class Solver:
                             loss += criterion(pred.permute(1,2,0), target.permute(1,0)[:,k+2].view(-1,1)) 
                             topv,topi = pred.topk(1)
                             topi = topi.view(1,-1).detach()
-                        loss = loss/(len(target)-1)
+                        loss = loss/(len(target)-1)"""
                     val_step+=1
-                    total_loss+= loss.item()
+                    v_total_loss+= loss.item()
                     if (i+1) % 100 == 0:
                         
-                        print("Valid epoch : {}, step : {} / {}, loss : {}".format(ep,i+1,v_bl,total_loss/(i+1)))
+                        print("Valid epoch : {}, step : {} / {}, loss : {}".format(ep,i+1,v_bl,v_total_loss/(i+1)))
                 x_val+= [step]
-                loss_val += [total_loss/v_bl]
-                if min_loss > total_loss:
-                    min_loss =total_loss
+                loss_val += [v_total_loss/v_bl]
+                if min_loss > v_total_loss:
+                    min_loss =v_total_loss
                     best_model = seq_model
-                else:
+                if  v_total_loss - total_loss > 0.2:
                     scheduler.step()
                 if ep %5 == 0:
                     self.plot(x_train,loss_train,x_val,loss_val,epoch=ep)

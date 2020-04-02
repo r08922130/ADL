@@ -180,6 +180,7 @@ class Solver:
                 else:
                     scheduler.step()
                 if ep %5 == 0:
+                    self.plot(x_train,loss_train,x_val,loss_val,epoch)
                     torch.save(best_model.state_dict(), "ckpt/best.ckpt")
             self.plot(x_train,loss_train,x_val,loss_val)
             torch.save(best_model.state_dict(), "ckpt/best.ckpt")
@@ -203,7 +204,7 @@ class Solver:
             pred = pred.permute(1,0)
             pred = torch.sigmoid(pred)
             
-            if i %10 == 0:
+            if (i+1) %100 == 0:
                 print(f"{i+1}/{l}")
             if model == 'm1':
                 pred = pred > threshold
@@ -219,14 +220,14 @@ class Solver:
             #print(pred.size())
         # show relative location
         # hist shape (# batches, batch size, predicts)
-        num_of_bins = 100
+        num_of_bins = 25
         plt.figure()
         plt.hist(result_hist,bins=num_of_bins,range=(0,1))
         plt.savefig("extractive.jpg")
 
-        if mode == 'test':
-            print('convert result to jsonl ...........')
-            post.toJson(output_file,result_dict)
+        
+        print('convert result to jsonl ...........')
+        post.toJson(output_file,result_dict)
 
 
 

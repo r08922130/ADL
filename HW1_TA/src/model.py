@@ -158,26 +158,26 @@ class S2SDecoder(nn.Module):
         output = self.linear(input)
         output = torch.tanh(output)
         output = torch.relu(output)
+        output,hidden = self.gru(output,hidden)
         if self.attention:
             #print(hidden.size())
             #attn_weights = F.softmax(self.attn(torch.cat((output[0], hidden[0]), 1)), dim=1)
             #print(self.enc_output.size())
-            Q = self.attn(self.enc_output)
-            
-            Q = Q.permute(1,0,2)
-            K_T = hidden[-1].unsqueeze(2)
-            att_weight = F.softmax(torch.bmm(Q,K_T),dim=1)
-            att_ap = torch.sum(torch.bmm(att_weight,hidden[-1].unsqueeze(1)),dim=1)
+            att_enc = self.attn(self.enc_output)
+            K_T = att_enc.permute(1,2,0)
+            #print(K_T.size())
+            Q = output.permute(1,0,2)
+            #print(Q.size())
+            att_weight = F.softmax(torch.bmm(Q,K_T),dim=-1)
+            att_ap =torch.bmm(att_weight,att_enc.permute(1,0,2)).permute(1,0,2)
             #print(att_ap.size())
-            att_ap = att_ap.unsqueeze(0)
-            #print(att_ap.size())
+            #att_ap = att_ap.unsqueeze(0)
+            #print(att_weight.size())
             
-        output,hidden = self.gru(output,hidden)
-        if self.attention:
             #combine output and attap
             output = torch.cat((att_ap,output),dim=-1)
             output = self.attn_combine(output)
-            output = torch.relu(output)
+            
             return output, hidden , att_weight
         return output, hidden, None
 class S2SEncoder(nn.Module):

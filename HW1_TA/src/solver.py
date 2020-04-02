@@ -165,7 +165,7 @@ class Solver:
                 if min_loss > v_total_loss:
                     min_loss =v_total_loss
                     best_model = seq_model
-                if  v_total_loss - total_loss > 0.2:
+                if  v_total_loss/v_bl - total_loss/t_bl > 0.2:
                     scheduler.step()
                 if ep %5 == 0:
                     self.plot(x_train,loss_train,x_val,loss_val,epoch=ep)

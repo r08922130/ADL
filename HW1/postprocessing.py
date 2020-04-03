@@ -36,7 +36,36 @@ class Postprocessing:
             
             n+=1
         return result_dict,result_hist, n
-
+    def select_sentence2(self,sentences,intervals,ids,result_dict,result_hist,start,mode='test',model='m1'):
+        
+        n = start
+        
+        for k in range(len(sentences)):
+            result = []
+            max_index = -1
+            max_Sum = -1
+            num_sen = 0
+            if model == 'm1':
+                num_sen = len(intervals[k])-1
+                for i in range(num_sen):
+                    isSummary = sum(sentences[k][intervals[k][i]:intervals[k][i+1]])
+                    if max_Sum < isSummary/(intervals[k][i+1]-intervals[k][i]):
+                        max_Sum = isSummary/(intervals[k][i+1]-intervals[k][i])
+                        max_index = i
+                    if isSummary > 0.95*(intervals[k][i+1]-intervals[k][i]):
+                        result += [i]
+                        result_hist += [i/num_sen]
+                if len(result) == 0:
+                    result+=[int(max_index)]
+            else:
+                num_sen = len(sentences[k])
+                index = np.argmax(sentences[k])
+                result+=[int(index)]
+                result_hist += [result/num_sen]
+            result_dict+=[{'id' : ids[k],'predict_sentence_index':result }] 
+            
+            n+=1
+        return result_dict,result_hist, n
     def toJson(self,file_name,dic):
         with open(file_name,'w') as f :
             for output in dic:

@@ -249,11 +249,14 @@ class Preprocessing:
         batches_labels = []
         interval = []
         interval_s = []
+        ids=[]
+        batch_ids=[]
         n = 0
         for data in arr:
             #print(n)
             internals = data['sent_bounds']
             text = data['text']
+            ids += [data['id']]
             sents = []
             labels = []
             now = 0
@@ -284,9 +287,10 @@ class Preprocessing:
                     print(batch_x.shape)
                 batches_x +=[batch_x]
                 interval_s += [interval]
+                batch_ids += [ids]
                 batch_x = []
                 interval = []
-                
+                ids =[]
         
         
         batch_x,batch_label = self.batch_PAD(dic,batch_x,None)
@@ -296,7 +300,7 @@ class Preprocessing:
         batches_x +=[batch_x]
         interval_s += [interval]
         print(batches_x[0][0])
-        return np.asarray(batches_x), np.asarray(interval_s)
+        return np.asarray(batches_x), np.asarray(interval_s),batch_ids
 
 #nltk.download('all-corpus')
 

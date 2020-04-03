@@ -34,7 +34,7 @@ class Solver:
             t_bl = len(batches)
             
             v_bl = len(valid_batches)
-            
+            gap = 0.2
             for ep in range(epoch):
                 seq_model.train()
                 
@@ -165,8 +165,9 @@ class Solver:
                 if min_loss > v_total_loss:
                     min_loss =v_total_loss
                     best_model = seq_model
-                if  v_total_loss/v_bl - total_loss/t_bl > 0.2:
+                if  v_total_loss/v_bl - total_loss/t_bl > gap:
                     scheduler.step()
+                    gap += 0.1
                 if ep %5 == 0:
                     self.plot(x_train,loss_train,x_val,loss_val,epoch=ep)
                     torch.save(best_model.state_dict(), "ckpt/best.ckpt")
@@ -194,51 +195,55 @@ class Solver:
         ax.xaxis.set_major_locator(ticker.MultipleLocator(1))
         ax.yaxis.set_major_locator(ticker.MultipleLocator(1))
 
-        plt.savefig(f'{p}*32_{s}_att.png')
-    def test(self,seq_model,batches,device,tokenizer,batch_size=16,mode='test'):
+        plt.savefig(f'{p}*128_{s}_att.png')
+    def test(self,seq_model,batches,device,tokenizer,attention=False,batch_size=16,mode='test'):
         result = []
         post = Postprocessing()
         n = 0
         result_dict = []
         l = len(batches)
-         
+        seq_model.eval()
         max_len = 300
-        for i in range(4):
-            p_batch = [93//batch_size,563//batch_size,607//batch_size,649//batch_size]
-            sen = [93%batch_size,563%batch_size,607%batch_size,649%batch_size]
+        if attention:
+            for i in range(4):
+                print(i)
+                p_batch = [93//batch_size,96//batch_size,607//batch_size,649//batch_size]
+                sen = [93%batch_size,97%batch_size,607%batch_size,649%batch_size]
 
-            sample = batches[p_batch[i]]['text'][sen[i]].unsqueeze(1)
-            stop = self.findEOS(sample)
-            data = sample.to(device)
-            pred, hidden , atts = seq_model(data,torch.LongTensor([1]).view(1,-1).to(device))
-            
-            topv,topi = pred.topk(1)    
-            result = topi.view(1,-1)
-            
-            for k in range(max_len-1):
-                #print(result.size())
-                topi = topi.view(1,-1).detach()
-                #print(target.permute(1,0)[:,i+1].view(-1,1))
-                pred, hidden , att = seq_model.decoder(seq_model.embedding(topi),hidden)
-                atts = torch.cat((atts,att),dim=0)
-                pred = seq_model.linear(pred)
-                #print(pred.permute(1,2,0).size(),target.permute(1,0)[:,i+1].view(-1,1).size())
-                topv,topi = pred.topk(1)
+                sample = batches[p_batch[i]]['text'][sen[i]].unsqueeze(1)
+                stop = self.findEOS(sample)
+                data = sample.to(device)
+                pred, hidden , atts = seq_model(data,torch.LongTensor([1]).view(1,-1).to(device))
                 
-                result = torch.cat((result,topi.view(1,-1)),dim=0)
-                if topi.item() == 2:
-                    break
-                #print(result.size())
-                """if topi.item == 2:
-                    break"""
+                topv,topi = pred.topk(1)    
+                result = topi.view(1,-1).cpu().detach()
                 
-                #result += [topi.item()]
-            atts = atts.squeeze(1)[:,:stop]
-            result = result.squeeze(1)
+                for k in range(max_len-1):
+                    
+                    #print(result.size())
+                    topi = topi.view(1,-1).detach()
+                    #print(target.permute(1,0)[:,i+1].view(-1,1))
+                    pred, hidden , att = seq_model.decoder(seq_model.embedding(topi),hidden)
+                    atts = torch.cat((atts,att),dim=0)
+                    pred = seq_model.linear(pred)
+                    #print(pred.permute(1,2,0).size(),target.permute(1,0)[:,i+1].view(-1,1).size())
+                    topv,topi = pred.topk(1)
+                    
+                    result = torch.cat((result,topi.cpu().view(1,-1).detach()),dim=0)
+                    if topi.item() == 2:
+                        break
+                    #print(result.size())
+                    """if topi.item == 2:
+                        break"""
+                    
+                    #result += [topi.item()]
+                print(result.size())
+                atts = atts.squeeze(1)[:30,:stop]
+                result = result.squeeze(1)
 
-            #print(sample)
-            #print(result)
-            self.showAttention(sample,result,atts,tokenizer,p_batch[i],sen[i])
+                #print(sample)
+                #print(result)
+                self.showAttention(sample,result,atts,tokenizer,p_batch[i],sen[i])
         for i,batch in enumerate(batches):
             
             bs = batch['text'].size(0)

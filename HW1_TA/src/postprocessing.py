@@ -37,9 +37,10 @@ class Postprocessing:
         return result_dict, n
 
     def toJson(self,file_name,dic):
-        with open(file_name,'w') as f :
+        print("convert to Json.....")
+        with open(file_name,'w',encoding='utf8') as f :
             for output in dic:
-                json.dump(output,f)
+                json.dump(output,f,ensure_ascii=False)
                 f.write('\n')
     def indiesToSentences(self,sentences,result_dict,vocab,tokenizer,mode='valid'):
         #sentences shape (# batches , batch size, seq len)
@@ -61,4 +62,6 @@ class Postprocessing:
             if sentence[i] == 2:
                 stop = i
                 break
+        if sentence[stop-1] == 3:
+            stop -=1
         return sentence[:stop]

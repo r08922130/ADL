@@ -56,7 +56,7 @@ if __name__ == "__main__":
         emb_w = embedding.vectors
         vocab = embedding.vocab
         attention = True if arg[4] == 'A' else False
-        mymodel = S2S(emb_w.size(0),emb_w.size(1),256,len(emb_w),device,layer=2,attention=attention).to(device)
+        mymodel = S2S(emb_w.size(0),emb_w.size(1),256,len(emb_w),device,layer=int(arg[5]),attention=attention).to(device)
         mymodel.embedding.from_pretrained(emb_w)
         """if arg[4] == 'pre':
             mymodel.load_state_dict(torch.load("ckpt/best.ckpt"))"""
@@ -75,9 +75,10 @@ if __name__ == "__main__":
             tokenizer.set_vocab(embedding.vocab)
         if arg[1] == 'valid':
             #valid
+
             with open("datasets/seq2seq/valid.pkl", 'rb') as f:
                 data = pickle.load(f)
-            mode = 'valid'
+            
             
         else:
             #test
@@ -92,7 +93,7 @@ if __name__ == "__main__":
                 with open("datasets/seq2seq/test.pkl", 'rb') as f:
                     data = pickle.load(f)
             
-            mode = 'test'
+        mode = arg[7]
         batch_size = int(arg[6])
         l = len(data) 
         if l%batch_size==0:    
@@ -104,12 +105,12 @@ if __name__ == "__main__":
         #print(data_batches[0]['text'])
         
         
-        mymodel = S2S(emb_w.size(0),emb_w.size(1),256,len(emb_w),device,layer=2,attention=attention).to(device)
+        mymodel = S2S(emb_w.size(0),emb_w.size(1),256,len(emb_w),device,layer=int(arg[8]),attention=attention).to(device)
         mymodel.embedding.from_pretrained(emb_w)
         if os.path.isfile(arg[4]):
             mymodel.load_state_dict(torch.load(arg[4],map_location= device))
         #solver.test
-        result = solver.test(mymodel,data_batches,device,tokenizer,batch_size=arg[6],mode=mode)
+        result = solver.test(mymodel,data_batches,device,tokenizer,attention=attention,batch_size=batch_size,mode=mode)
         post = Postprocessing()
         dict_result = []
         dict_result = post.indiesToSentences(result,dict_result,vocab,tokenizer,mode=mode)

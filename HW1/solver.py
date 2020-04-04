@@ -225,7 +225,7 @@ class Solver:
         num_of_bins = 25
         plt.figure()
         plt.hist(result_hist,bins=num_of_bins,range=(0,1))
-        plt.savefig("extractive.jpg")
+        plt.savefig("extractive.png")
 
         
         print('convert result to jsonl ...........')

@@ -139,7 +139,7 @@ class S2S(nn.Module):
         #print(output.size())
         return output,hidden,att_w
 class S2SDecoder(nn.Module):
-    def __init__(self,input_size,hidden_size,device,layer=1,batch_size=16,attention=False):
+    def __init__(self,input_size,hidden_size,device,layer=1,batch_size=16,attention=False,addtive = False):
         super().__init__()
         self.batch_size = batch_size
         self.layer = layer
@@ -149,10 +149,14 @@ class S2SDecoder(nn.Module):
         self.attention = attention
         self.linear = nn.Linear(input_size,hidden_size)
         self.gru = nn.GRU(hidden_size,hidden_size,num_layers= layer)
+        self.addtive = addtive
         if attention:
             self.attn = nn.Linear(self.hidden_size * 2, self.hidden_size)
             self.attn_combine = nn.Linear(self.hidden_size * 2, self.hidden_size)
             self.LN_F = nn.LayerNorm(hidden_size)
+            if self.addtive :
+                self.attnQ = nn.Linear(self.hidden_size, self.hidden_size)
+                self.attnA = nn.Linear(self.hidden_size, self.hidden_size)
         init.orthogonal_(self.gru.weight_ih_l0.data)
         init.orthogonal_(self.gru.weight_hh_l0.data)
     def forward(self,input,hidden):
@@ -162,24 +166,23 @@ class S2SDecoder(nn.Module):
             output = torch.relu(output)
         output,hidden = self.gru(output,hidden)
         if self.attention:
-            #print(hidden.size())
-            #attn_weights = F.softmax(self.attn(torch.cat((output[0], hidden[0]), 1)), dim=1)
-            #print(self.enc_output.size())
             att_enc = self.attn(self.enc_output)
-            K_T = att_enc.permute(1,2,0)
-            #print(K_T.size())
-            Q = output.permute(1,0,2)
-            #print(Q.size())
-            att_weight = F.softmax(torch.bmm(Q,K_T),dim=-1)
-            att_ap =torch.bmm(att_weight,att_enc.permute(1,0,2)).permute(1,0,2)
-            #print(att_ap.size())
-            #att_ap = att_ap.unsqueeze(0)
-            #print(att_weight.size())
-            
-            #combine output and attap
+            if not self.addtive:
+            # dot product
+                
+                K_T = att_enc.permute(1,2,0)
+                
+                Q = output.permute(1,0,2)
+                
+                att_weight = F.softmax(torch.bmm(Q,K_T),dim=-1)
+                att_ap =torch.bmm(att_weight,att_enc.permute(1,0,2)).permute(1,0,2)
+            else:
+                K = att_enc
+                Q = self.attnQ(output)
             output = torch.cat((att_ap,output),dim=-1)
             output = self.attn_combine(output)
             output = self.LN_F(output)
+
             return output, hidden , att_weight
         return output, hidden, None
 class S2SEncoder(nn.Module):
@@ -207,14 +210,14 @@ class S2SEncoder(nn.Module):
         output = self.linear(input)
         output = torch.tanh(output)
 
-        """if self.attention:
+        if self.attention:
             hidden = self.initHidden(input.size(1),self.layer)
 
             gru_output , hidden =self.gru_F(output,hidden)
             gru_output = self.LN_F(gru_output)
             gru_output = self.dropout(gru_output)
             gru_output = torch.cat((gru_output,output),-1)
-            output = self.linear_new(gru_output)"""
+            output = self.linear_new(gru_output)
         hidden = self.initHidden(input.size(1),self.layer*2)
         output , hidden =self.gru(output,hidden)
         #print(hidden[1::2].size())

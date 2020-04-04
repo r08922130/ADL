@@ -22,7 +22,7 @@ class Solver:
         min_loss = 100000000
         best_model = None
         seq_opt=optim.RMSprop(seq_model.parameters(), lr=lr)
-        scheduler = lr_scheduler.StepLR(seq_opt,step_size=1,gamma=0.9)
+        scheduler = lr_scheduler.StepLR(seq_opt,step_size=1,gamma=0.5)
         step = 0
         x_train = []
         loss_train =[]
@@ -209,7 +209,7 @@ class Solver:
         if attention:
             for i in range(4):
                 print(i)
-                p_batch = [93//batch_size,96//batch_size,607//batch_size,649//batch_size]
+                p_batch = [93//batch_size,97//batch_size,607//batch_size,649//batch_size]
                 sen = [93%batch_size,97%batch_size,607%batch_size,649%batch_size]
 
                 sample = batches[p_batch[i]]['text'][sen[i]].unsqueeze(1)

@@ -187,14 +187,13 @@ class Solver:
             self.plot(x_train,loss_train,x_val,loss_val)
             #torch.save(best_model.state_dict(), "ckpt/best.ckpt")
             seq_model = best_model
-    def test(self,seq_model,batches,interval,ids,output_file,device,mode='test',model='m1',threshold=0.8):
+    def test(self,seq_model,batches,interval,output_file,device,mode='test',model='m1',threshold=0.8):
         result = []
         post = Postprocessing()
         n = 0
         result_dict = []
         result_hist = []
         l = len(batches)
-        lid =  len(ids)
         for i in range(l):
             
             data = torch.LongTensor(batches[i]).to(device)
@@ -218,17 +217,15 @@ class Solver:
                 #print(pred[2])
                 #print(pred[3])
             #print(pred.size())
-            if lid == 0:
-                result_dict,result_hist,n = post.select_sentence(pred.cpu().numpy(),interval[i],result_dict,result_hist,n,mode=mode,model=model)
-            else:
-                result_dict,result_hist,n = post.select_sentence2(pred.cpu().numpy(),interval[i],ids[i],result_dict,result_hist,n,mode=mode,model=model)
+            result_dict,result_hist,n = post.select_sentence(pred.cpu().numpy(),interval[i],result_dict,result_hist,n,mode=mode,model=model)
+            
             #print(pred.size())
         # show relative location
         # hist shape (# batches, batch size, predicts)
         num_of_bins = 25
         plt.figure()
         plt.hist(result_hist,bins=num_of_bins,range=(0,1))
-        plt.savefig("extractive.jpg")
+        plt.savefig("extractive.png")
 
         
         print('convert result to jsonl ...........')

@@ -111,6 +111,8 @@ if __name__ == "__main__":
             mymodel.load_state_dict(torch.load(arg[4],map_location= device))
         #solver.test
         result,ids = solver.test(mymodel,data_batches,device,tokenizer,attention=attention,batch_size=batch_size,mode=mode)
+        #result,ids = solver.test_beam_search(mymodel,data_batches,device,tokenizer,beam_size=2,attention=attention,batch_size=batch_size,mode=mode)
+
         post = Postprocessing()
         dict_result = []
         dict_result = post.indiesToSentences(result,dict_result,ids,vocab,tokenizer,mode=mode)

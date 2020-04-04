@@ -210,7 +210,7 @@ class Solver:
             for i in range(4):
                 print(i)
                 p_batch = [93//batch_size,96//batch_size,607//batch_size,649//batch_size]
-                sen = [93%batch_size,97%batch_size,607%batch_size,649%batch_size]
+                sen = [93%batch_size,96%batch_size,607%batch_size,649%batch_size]
 
                 sample = batches[p_batch[i]]['text'][sen[i]].unsqueeze(1)
                 stop = self.findEOS(sample)
@@ -278,6 +278,100 @@ class Solver:
             result_dict += [result.permute(1,0).cpu().numpy()]
             result_id += [batch['id']]
                 
+                
+            if (i+1) %10 == 0:
+                print(f"{i+1}/{l}")
+            
+            
+            #print(pred.size())
+        
+        return result_dict,result_id
+    class Store:
+        def __init__(self,can,hidden,score,next):
+            self.score = score
+            self.can =can
+            self.hidden = hidden
+            self.next = next
+    def test_beam_search(self,seq_model,batches,device,tokenizer,beam_size=2,attention=False,batch_size=16,mode='test'):
+        result = []
+        post = Postprocessing()
+        n = 0
+        result_dict = []
+        result_id =[]
+        l = len(batches)
+        seq_model.eval()
+        max_len = 300
+        for i,batch in enumerate(batches):
+            
+            bs = batch['text'].size(0)
+            #print(bs)
+            data = batch['text'].to(device)
+            data = data.permute(1,0)
+            pred, hidden , att = seq_model(data,torch.LongTensor([1]*bs).view(1,-1).to(device))
+            pred = torch.softmax(pred,dim=-1)
+            
+            candidate_value,candidate = pred.topk(beam_size)
+            print(candidate_value[0,:,0].size())
+            #candidate = topi
+            #candidate_value = topv
+            #print(result.size())
+            hidden_dict =[]
+            beam_dict = []
+            path_dict = []
+            #store hidden
+            #head = Store(torch.LongTensor([1]*bs),hidden,1,None)
+            for b in range(beam_size):
+                hidden_dict += [hidden]
+                # size ( 128 )
+                beam_dict += [candidate_value[0,:,b]]
+                path_dict += [candidate[:,:,b]]
+            for k in range(max_len-1):
+                #store next hidden and score
+                hidden_dict2 = []
+                beam_dict2 = []
+                path_dict2 = []
+                for b in range(beam_size):
+
+                    topi = candidate[-1,:,b].view(1,-1).detach()
+                    #print(topi.size())
+                    #print(target.permute(1,0)[:,i+1].view(-1,1))
+                    pred, hidden , att = seq_model.decoder(seq_model.embedding(topi),hidden_dict[b])
+                    
+                    
+                    pred = seq_model.linear(pred)
+                    #print(pred.permute(1,2,0).size(),target.permute(1,0)[:,i+1].view(-1,1).size())
+                    topv,topi = pred.topk(beam_size)
+                    #calculate beam score and store path 
+                    for l_b in range(beam_size):
+                        hidden_dict2 += [hidden]
+                        beam_dict2 += [beam_dict[b]*topv[-1,:,l_b]] 
+                        path_dict2 += [torch.cat((path_dict[b],topi[:,:,l_b]),dim=0)]
+                    #print(path_dict2[0].size())
+                scores = [(torch.sum(beam).item(),i) for i,beam in enumerate(beam_dict2)]
+                #print(scores)
+                scores = sorted(scores)
+                #print(scores)
+                for b in range(1,beam_size+1):
+                    
+                    hidden_dict2[b-1], hidden_dict2[scores[-b][1]] = hidden_dict2[scores[-b][1]],hidden_dict2[b-1]
+                    beam_dict2[b-1], beam_dict2[scores[-b][1]] = beam_dict2[scores[-b][1]],beam_dict2[b-1]
+                    path_dict2[b-1], path_dict2[scores[-b][1]] = path_dict2[scores[-b][1]],path_dict2[b-1]
+                hidden_dict = hidden_dict2[:beam_size]
+                scores = [(torch.sum(beam).item(),i) for i,beam in enumerate(beam_dict2[:2])]
+                #print(path_dict2[0][:,0])
+                #print(path_dict2[1][:,0])
+                beam_dict = beam_dict2[:beam_size]
+                
+                path_dict = path_dict2[:beam_size]
+                    #result = torch.cat((result,topi.view(1,-1)),dim=0)
+                #print(result.size())
+                """if topi.item == 2:
+                    break"""
+                
+                #result += [topi.item()]
+            result_dict += [path_dict[0].permute(1,0).cpu().numpy()]
+            result_id += [batch['id']]
+            
                 
             if (i+1) %10 == 0:
                 print(f"{i+1}/{l}")

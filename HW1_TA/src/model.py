@@ -157,8 +157,8 @@ class S2SDecoder(nn.Module):
         init.orthogonal_(self.gru.weight_hh_l0.data)
     def forward(self,input,hidden):
         output = self.linear(input)
-        output = torch.tanh(output)
         if not self.attention:
+            output = torch.tanh(output)
             output = torch.relu(output)
         output,hidden = self.gru(output,hidden)
         if self.attention:
@@ -180,7 +180,7 @@ class S2SDecoder(nn.Module):
             output = torch.cat((att_ap,output),dim=-1)
             output = self.attn_combine(output)
             output = self.LN_F(output)
-            return att_ap, hidden , att_weight
+            return output, hidden , att_weight
         return output, hidden, None
 class S2SEncoder(nn.Module):
     def __init__(self,input_size,hidden_size,device,layer=1,batch_size=16,attention=False):
@@ -207,14 +207,14 @@ class S2SEncoder(nn.Module):
         output = self.linear(input)
         output = torch.tanh(output)
 
-        if self.attention:
+        """if self.attention:
             hidden = self.initHidden(input.size(1),self.layer)
 
             gru_output , hidden =self.gru_F(output,hidden)
             gru_output = self.LN_F(gru_output)
             gru_output = self.dropout(gru_output)
             gru_output = torch.cat((gru_output,output),-1)
-            output = self.linear_new(gru_output)
+            output = self.linear_new(gru_output)"""
         hidden = self.initHidden(input.size(1),self.layer*2)
         output , hidden =self.gru(output,hidden)
         #print(hidden[1::2].size())
@@ -223,7 +223,8 @@ class S2SEncoder(nn.Module):
         if not self.attention:
             hidden = self.LN(hidden)
         hidden = self.linear_new(hidden)
-        hidden = torch.tanh(hidden)
+        if not self.attention:
+            hidden = torch.tanh(hidden)
         output = self.LN(output)
         
         return output,hidden

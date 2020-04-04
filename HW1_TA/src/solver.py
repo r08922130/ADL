@@ -22,7 +22,7 @@ class Solver:
         min_loss = 100000000
         best_model = None
         seq_opt=optim.RMSprop(seq_model.parameters(), lr=lr)
-        scheduler = lr_scheduler.StepLR(seq_opt,step_size=1,gamma=0.5)
+        scheduler = lr_scheduler.StepLR(seq_opt,step_size=1,gamma=0.9)
         step = 0
         x_train = []
         loss_train =[]
@@ -164,15 +164,16 @@ class Solver:
                 loss_val += [v_total_loss/v_bl]
                 if min_loss > v_total_loss:
                     min_loss =v_total_loss
-                    best_model = seq_model
+                    #best_model = seq_model
+                    torch.save(seq_model.state_dict(), "ckpt/best.ckpt")
                 if  v_total_loss/v_bl - total_loss/t_bl > gap:
                     scheduler.step()
                     gap += 0.1
                 if ep %5 == 0:
                     self.plot(x_train,loss_train,x_val,loss_val,epoch=ep)
-                    torch.save(best_model.state_dict(), "ckpt/best.ckpt")
+                    
             self.plot(x_train,loss_train,x_val,loss_val,epoch=epoch)
-            seq_model = best_model
+            #seq_model = best_model
                     
     def findEOS(self,sample):
         for i,word in enumerate(sample):
@@ -201,6 +202,7 @@ class Solver:
         post = Postprocessing()
         n = 0
         result_dict = []
+        result_id =[]
         l = len(batches)
         seq_model.eval()
         max_len = 300
@@ -274,6 +276,7 @@ class Solver:
                 
                 #result += [topi.item()]
             result_dict += [result.permute(1,0).cpu().numpy()]
+            result_id += [batch['id']]
                 
                 
             if (i+1) %10 == 0:
@@ -282,7 +285,7 @@ class Solver:
             
             #print(pred.size())
         
-        return result_dict
+        return result_dict,result_id
 
 
 

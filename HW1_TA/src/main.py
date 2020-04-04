@@ -110,9 +110,9 @@ if __name__ == "__main__":
         if os.path.isfile(arg[4]):
             mymodel.load_state_dict(torch.load(arg[4],map_location= device))
         #solver.test
-        result = solver.test(mymodel,data_batches,device,tokenizer,attention=attention,batch_size=batch_size,mode=mode)
+        result,ids = solver.test(mymodel,data_batches,device,tokenizer,attention=attention,batch_size=batch_size,mode=mode)
         post = Postprocessing()
         dict_result = []
-        dict_result = post.indiesToSentences(result,dict_result,vocab,tokenizer,mode=mode)
+        dict_result = post.indiesToSentences(result,dict_result,ids,vocab,tokenizer,mode=mode)
         post.toJson(arg[5],dict_result)  
             

@@ -93,14 +93,15 @@ class Solver:
                 loss_val += [total_loss/bl]
                 if min_loss > total_loss:
                     min_loss =total_loss
-                    best_model = seq_model
+                    #best_model = 
+                    torch.save(seq_model.state_dict(), "ckpt/best.ckpt")
                 else:
                     scheduler.step()
                 if ep %5 == 0:
                     self.plot(x_train,loss_train,x_val,loss_val,epoch)
-                    torch.save(best_model.state_dict(), "ckpt/best.ckpt")
+                    
             self.plot(x_train,loss_train,x_val,loss_val,epoch)
-            seq_model = best_model
+            #seq_model = best_model
                     
     def train_sentences(self,seq_model,batches,labels,valid_batches,valid_labels,device,mode='extractive',
                 criterion=nn.BCEWithLogitsLoss(),epoch=10,lr=0.0001,encoder=None,decoder=None):
@@ -176,14 +177,15 @@ class Solver:
                 loss_val += [total_loss/bl]
                 if min_loss > total_loss:
                     min_loss =total_loss
-                    best_model = seq_model
+                    #best_model = seq_model
+                    torch.save(seq_model.state_dict(), "ckpt/best.ckpt")
                 else:
                     scheduler.step()
                 if ep %5 == 0:
                     self.plot(x_train,loss_train,x_val,loss_val,epoch)
-                    torch.save(best_model.state_dict(), "ckpt/best.ckpt")
+                    #torch.save(best_model.state_dict(), "ckpt/best.ckpt")
             self.plot(x_train,loss_train,x_val,loss_val)
-            torch.save(best_model.state_dict(), "ckpt/best.ckpt")
+            #torch.save(best_model.state_dict(), "ckpt/best.ckpt")
             seq_model = best_model
     def test(self,seq_model,batches,interval,ids,output_file,device,mode='test',model='m1',threshold=0.8):
         result = []

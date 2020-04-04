@@ -42,18 +42,15 @@ class Postprocessing:
             for output in dic:
                 json.dump(output,f,ensure_ascii=False)
                 f.write('\n')
-    def indiesToSentences(self,sentences,result_dict,vocab,tokenizer,mode='valid'):
+    def indiesToSentences(self,sentences,result_dict,ids,vocab,tokenizer,mode='valid'):
         #sentences shape (# batches , batch size, seq len)
         n = 0
-        if mode == 'test':
-            id_start = 3000000
-        else:
-            id_start = 2000000
-        for batch in sentences:
-            for sentence in batch:
+        
+        for batch_ids ,batch in zip(ids,sentences):
+            for data_id ,sentence in zip(batch_ids,batch):
                 s = self.removeAfterEOS(sentence)
                 result = tokenizer.decode(s)
-                result_dict+=[{'id' : str(n+id_start),'predict':result }] 
+                result_dict+=[{'id' : data_id,'predict':result }] 
                 n+=1
         return result_dict
     def removeAfterEOS(self,sentence):

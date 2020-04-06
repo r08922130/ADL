@@ -39,6 +39,7 @@ if __name__ == "__main__":
         else:
             v_bl = v_l//batch_size+1
         train_batches = [train.collate_fn([train[j] for j in range(i*batch_size,min((i+1)*batch_size,t_l))]) for i in range(t_bl)]
+        print(train_batches[0]['summary'][0])
         #print(batches['text'][0:batch_size])
         #train_data = batches['text']
         #train_label = batches['label']
@@ -60,6 +61,8 @@ if __name__ == "__main__":
         mymodel.embedding.from_pretrained(emb_w)
         """if arg[4] == 'pre':
             mymodel.load_state_dict(torch.load("ckpt/best.ckpt"))"""
+        #mymodel.load_state_dict(torch.load("tan_ckpt/best.ckpt"))
+
         solver.train(mymodel,train_batches,valid_batches,attention=attention,batch_size=batch_size,device=device,epoch=int(arg[3]))
     else:
         with open("datasets/seq2seq/embedding.pkl", 'rb') as f:
@@ -104,14 +107,14 @@ if __name__ == "__main__":
         data_batches = [data.collate_fn([data[j] for j in range(i*batch_size,min((i+1)*batch_size,l))]) for i in range(bl)]
         #print(data_batches[0]['text'])
         
-        
+        print(tokenizer.encode("."))
         mymodel = S2S(emb_w.size(0),emb_w.size(1),256,len(emb_w),device,layer=int(arg[8]),attention=attention).to(device)
         mymodel.embedding.from_pretrained(emb_w)
         if os.path.isfile(arg[4]):
             mymodel.load_state_dict(torch.load(arg[4],map_location= device))
         #solver.test
-        result,ids = solver.test(mymodel,data_batches,device,tokenizer,attention=attention,batch_size=batch_size,mode=mode)
-        #result,ids = solver.test_beam_search(mymodel,data_batches,device,tokenizer,beam_size=2,attention=attention,batch_size=batch_size,mode=mode)
+        #result,ids = solver.test(mymodel,data_batches,device,tokenizer,attention=attention,batch_size=batch_size,mode=mode)
+        result,ids = solver.test_beam_search(mymodel,data_batches,device,tokenizer,beam_size=1,attention=attention,batch_size=batch_size,mode=mode)
 
         post = Postprocessing()
         dict_result = []

@@ -139,6 +139,7 @@ class S2S(nn.Module):
         #print(output.size())
         return output,hidden,att_w
 class S2SDecoder(nn.Module):
+
     def __init__(self,input_size,hidden_size,device,layer=1,batch_size=16,attention=False,addtive = False):
         super().__init__()
         self.batch_size = batch_size
@@ -152,6 +153,7 @@ class S2SDecoder(nn.Module):
         self.addtive = addtive
         if attention:
             self.attn = nn.Linear(self.hidden_size * 2, self.hidden_size)
+            self.attn2 = nn.Linear(self.hidden_size , self.hidden_size)
             self.attn_combine = nn.Linear(self.hidden_size * 2, self.hidden_size)
             self.LN_F = nn.LayerNorm(hidden_size)
             if self.addtive :
@@ -164,26 +166,31 @@ class S2SDecoder(nn.Module):
         if not self.attention:
             output = torch.tanh(output)
             output = torch.relu(output)
-        output,hidden = self.gru(output,hidden)
-        if self.attention:
+            output,hidden = self.gru(output,hidden)
+        if self.attention and  not self.addtive:
+            output,hidden = self.gru(output,hidden)
             att_enc = self.attn(self.enc_output)
-            if not self.addtive:
+ 
             # dot product
                 
-                K_T = att_enc.permute(1,2,0)
-                
-                Q = output.permute(1,0,2)
-                
-                att_weight = F.softmax(torch.bmm(Q,K_T),dim=-1)
-                att_ap =torch.bmm(att_weight,att_enc.permute(1,0,2)).permute(1,0,2)
-            else:
-                K = att_enc
-                Q = self.attnQ(output)
+            K_T = att_enc.permute(1,2,0)
+            
+            Q = self.attn2(output).permute(1,0,2)
+            
+            att_weight = F.softmax(torch.bmm(Q,K_T),dim=-1)
+            #att_weight = F.softmax(torch.tanh(torch.bmm(Q,K_T)),dim=-1)
+            
+            att_ap =torch.bmm(att_weight,att_enc.permute(1,0,2)).permute(1,0,2)
             output = torch.cat((att_ap,output),dim=-1)
             output = self.attn_combine(output)
             output = self.LN_F(output)
 
             return output, hidden , att_weight
+        if self.attention and self.addtive:
+            # seq len should be 1
+            pass
+                
+
         return output, hidden, None
 class S2SEncoder(nn.Module):
     def __init__(self,input_size,hidden_size,device,layer=1,batch_size=16,attention=False):

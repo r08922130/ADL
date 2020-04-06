@@ -18,11 +18,10 @@ class Solver:
         plt.savefig("Epoch_{}.jpg".format(epoch))
     def train(self,seq_model,batches,valid_batches,device,attention=False,mode='abstractive',
                 batch_size = 16,epoch=10,lr=0.0001,encoder=None,decoder=None):
-        
         min_loss = 100000000
         best_model = None
         seq_opt=optim.RMSprop(seq_model.parameters(), lr=lr)
-        scheduler = lr_scheduler.StepLR(seq_opt,step_size=1,gamma=0.5)
+        scheduler = lr_scheduler.StepLR(seq_opt,step_size=1,gamma=0.7)
         step = 0
         x_train = []
         loss_train =[]
@@ -76,6 +75,7 @@ class Solver:
                                 topv,topi = pred.topk(1)
                                 topi = topi.view(1,-1).detach()
                             loss = loss/(len(target)-1)
+
                         else:
                         #bos
                             pred, hidden , att = seq_model(data,torch.LongTensor([1]*bs).view(1,-1).to(device))
@@ -94,6 +94,7 @@ class Solver:
                                 topv,topi = pred.topk(1)
                                 topi = topi.view(1,-1).detach()
                             loss = loss/(len(target)-1) """
+
                             
                             
                     total_loss += loss.item() 
@@ -169,6 +170,7 @@ class Solver:
                 if  v_total_loss/v_bl - total_loss/t_bl > gap:
                     scheduler.step()
                     gap += 0.1
+
                 if ep %5 == 0:
                     self.plot(x_train,loss_train,x_val,loss_val,epoch=ep)
                     
@@ -198,28 +200,27 @@ class Solver:
 
         plt.savefig(f'{p}*128_{s}_att.png')
     def test(self,seq_model,batches,device,tokenizer,attention=False,batch_size=16,mode='test'):
+
         result = []
         post = Postprocessing()
         n = 0
         result_dict = []
         result_id =[]
         l = len(batches)
+
         seq_model.eval()
-        max_len = 300
+        max_len = 30
         if attention:
             for i in range(4):
                 print(i)
-<<<<<<< HEAD
-                p_batch = [93//batch_size,97//batch_size,607//batch_size,649//batch_size]
-                sen = [93%batch_size,97%batch_size,607%batch_size,649%batch_size]
-=======
-                p_batch = [93//batch_size,96//batch_size,607//batch_size,649//batch_size]
-                sen = [93%batch_size,96%batch_size,607%batch_size,649%batch_size]
->>>>>>> 4c3138e4f189294b1579de15a7a9c18bccd1cf18
+
+                p_batch = [25//batch_size,97//batch_size,607//batch_size,649//batch_size]
+                sen = [25%batch_size,97%batch_size,607%batch_size,649%batch_size]
+                            
 
                 sample = batches[p_batch[i]]['text'][sen[i]].unsqueeze(1)
                 stop = self.findEOS(sample)
-                data = sample.to(device)
+                data = sample[:stop].to(device)
                 pred, hidden , atts = seq_model(data,torch.LongTensor([1]).view(1,-1).to(device))
                 
                 topv,topi = pred.topk(1)    
@@ -258,10 +259,11 @@ class Solver:
             data = batch['text'].to(device)
             data = data.permute(1,0)
             pred, hidden , att = seq_model(data,torch.LongTensor([1]*bs).view(1,-1).to(device))
-            topv,topi = pred.topk(1)
+
             #print(topi.view(1,-1))
             
-            result = topi.view(1,-1)
+            topv,topi = pred.topk(1)    
+            result = topi.view(1,-1).detach()
             #print(target[0:1].size())
             #print(pred.size())
             #print(topi.view(1,-1).detach().size())
@@ -305,7 +307,8 @@ class Solver:
         result_id =[]
         l = len(batches)
         seq_model.eval()
-        max_len = 300
+        max_len = 30
+        softmax = nn.Softmax(dim=-1)
         for i,batch in enumerate(batches):
             
             bs = batch['text'].size(0)
@@ -313,10 +316,10 @@ class Solver:
             data = batch['text'].to(device)
             data = data.permute(1,0)
             pred, hidden , att = seq_model(data,torch.LongTensor([1]*bs).view(1,-1).to(device))
-            pred = torch.softmax(pred,dim=-1)
+            pred = softmax(pred)
             
             candidate_value,candidate = pred.topk(beam_size)
-            print(candidate_value[0,:,0].size())
+            #print(candidate_value[0,:,0].size())
             #candidate = topi
             #candidate_value = topv
             #print(result.size())
@@ -329,28 +332,32 @@ class Solver:
                 hidden_dict += [hidden]
                 # size ( 128 )
                 beam_dict += [candidate_value[0,:,b]]
-                path_dict += [candidate[:,:,b]]
+                path_dict += [candidate[:,:,b].cpu()]
             for k in range(max_len-1):
                 #store next hidden and score
                 hidden_dict2 = []
                 beam_dict2 = []
                 path_dict2 = []
                 for b in range(beam_size):
-
-                    topi = candidate[-1,:,b].view(1,-1).detach()
+                    
+                    topi = path_dict[b][-1].view(1,-1).detach().to(device)
                     #print(topi.size())
                     #print(target.permute(1,0)[:,i+1].view(-1,1))
                     pred, hidden , att = seq_model.decoder(seq_model.embedding(topi),hidden_dict[b])
                     
                     
                     pred = seq_model.linear(pred)
+                    
+                    pred = softmax(pred)
+                    #print(torch.cuda.memory_allocated(0)/1024**3)
                     #print(pred.permute(1,2,0).size(),target.permute(1,0)[:,i+1].view(-1,1).size())
                     topv,topi = pred.topk(beam_size)
                     #calculate beam score and store path 
+                    
                     for l_b in range(beam_size):
                         hidden_dict2 += [hidden]
                         beam_dict2 += [beam_dict[b]*topv[-1,:,l_b]] 
-                        path_dict2 += [torch.cat((path_dict[b],topi[:,:,l_b]),dim=0)]
+                        path_dict2 += [torch.cat((path_dict[b],topi[:,:,l_b].cpu()),dim=0)]
                     #print(path_dict2[0].size())
                 scores = [(torch.sum(beam).item(),i) for i,beam in enumerate(beam_dict2)]
                 #print(scores)
@@ -362,7 +369,7 @@ class Solver:
                     beam_dict2[b-1], beam_dict2[scores[-b][1]] = beam_dict2[scores[-b][1]],beam_dict2[b-1]
                     path_dict2[b-1], path_dict2[scores[-b][1]] = path_dict2[scores[-b][1]],path_dict2[b-1]
                 hidden_dict = hidden_dict2[:beam_size]
-                scores = [(torch.sum(beam).item(),i) for i,beam in enumerate(beam_dict2[:2])]
+                #scores = [(torch.sum(beam).item(),i) for i,beam in enumerate(beam_dict2[:2])]
                 #print(path_dict2[0][:,0])
                 #print(path_dict2[1][:,0])
                 beam_dict = beam_dict2[:beam_size]

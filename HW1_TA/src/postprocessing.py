@@ -49,7 +49,10 @@ class Postprocessing:
         for batch_ids ,batch in zip(ids,sentences):
             for data_id ,sentence in zip(batch_ids,batch):
                 s = self.removeAfterEOS(sentence)
-                result = tokenizer.decode(s)
+                result = tokenizer.decode(s).replace(' £ 1 m','').replace(' £','')
+                if len(result) > 0 and result[-1] != '.':
+                    result+= ' .'
+                result+= ' \n'
                 result_dict+=[{'id' : data_id,'predict':result }] 
                 n+=1
         return result_dict
@@ -61,4 +64,23 @@ class Postprocessing:
                 break
         if sentence[stop-1] == 3:
             stop -=1
-        return sentence[:stop]
+        if stop != -1:
+            sentence = sentence[:stop]
+        if len(sentence)>1:
+            new_sen = [sentence[0]]
+            for s in sentence[1:]:
+                if s != new_sen[-1]:
+                    new_sen += [s]
+            sentence = new_sen
+        """result = []
+        [result.append(x) for x in sentence if x not in result]    
+        if result[-1]!= 6:
+            result.append(6)"""
+        return sentence
+    
+    """def removeSpecificDuplicateSubstring(self,sentence):
+        i = 0
+        size = 0
+        result = []
+        for k in range(2,len(sentence))
+            if sentence[k] ==  """

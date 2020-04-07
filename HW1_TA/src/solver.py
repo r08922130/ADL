@@ -17,10 +17,10 @@ class Solver:
         plt.plot(x,y,"r",x_val,y_val,"b")
         plt.savefig("Epoch_{}.jpg".format(epoch))
     def train(self,seq_model,batches,valid_batches,device,attention=False,mode='abstractive',
-                batch_size = 16,epoch=10,lr=0.0001,encoder=None,decoder=None):
+                batch_size = 16,epoch=10,lr=0.001,encoder=None,decoder=None):
         min_loss = 100000000
         best_model = None
-        seq_opt=optim.RMSprop(seq_model.parameters(), lr=lr)
+        seq_opt=optim.Adam(seq_model.parameters(), lr=lr)
         scheduler = lr_scheduler.StepLR(seq_opt,step_size=1,gamma=0.7)
         step = 0
         x_train = []
@@ -167,9 +167,9 @@ class Solver:
                     min_loss =v_total_loss
                     #best_model = seq_model
                     torch.save(seq_model.state_dict(), "ckpt/best.ckpt")
-                if  v_total_loss/v_bl - total_loss/t_bl > gap:
+                """if  v_total_loss/v_bl - total_loss/t_bl > gap:
                     scheduler.step()
-                    gap += 0.1
+                    gap += 0.1"""
 
                 if ep %5 == 0:
                     self.plot(x_train,loss_train,x_val,loss_val,epoch=ep)

@@ -61,7 +61,7 @@ if __name__ == "__main__":
         mymodel.embedding.from_pretrained(emb_w)
         """if arg[4] == 'pre':
             mymodel.load_state_dict(torch.load("ckpt/best.ckpt"))"""
-        #mymodel.load_state_dict(torch.load("tan_ckpt/best.ckpt"))
+        #mymodel.load_state_dict(torch.load("ckpt/best.ckpt"))
 
         solver.train(mymodel,train_batches,valid_batches,attention=attention,batch_size=batch_size,device=device,epoch=int(arg[3]))
     else:

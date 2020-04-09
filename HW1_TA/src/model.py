@@ -223,8 +223,9 @@ class S2SEncoder(nn.Module):
             gru_output , hidden =self.gru_F(output,hidden)
             gru_output = self.LN_F(gru_output)
             gru_output = self.dropout(gru_output)
-            gru_output = torch.cat((gru_output,output),-1)
-            output = self.linear_new(gru_output)
+            output = gru_output + output
+            #gru_output = torch.cat((gru_output,output),-1)
+            #output = self.linear_new(gru_output)
         hidden = self.initHidden(input.size(1),self.layer*2)
         output , hidden =self.gru(output,hidden)
         #print(hidden[1::2].size())

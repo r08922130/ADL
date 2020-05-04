@@ -299,6 +299,7 @@ class Preprocessing:
         print(batch_x.shape)
         batches_x +=[batch_x]
         interval_s += [interval]
+        batch_ids += [ids]
         print(batches_x[0][0])
         return np.asarray(batches_x), np.asarray(interval_s),batch_ids
 

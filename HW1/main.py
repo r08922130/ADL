@@ -108,6 +108,7 @@ if __name__ == "__main__":
             pre = Preprocessing()
             test_data, test_interval,test_id = pre.word_to_index(dic,test_file)
             mode='test'
+            print(len(test_id[-1]))
         else:
             if not os.path.isfile("embedding.npy") :
                 pre = Preprocessing()

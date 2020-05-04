@@ -24,3 +24,11 @@ r08922130
 HW1*
 HW1_TA*
 HW2/data
+HW2/ckpt*
+HW2/*.ckpt
+HW2/process*
+HW2/*.png
+HW2/*.*.*
+HW2/*.json
+HW2/ckip*
+*/__py*

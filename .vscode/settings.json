@@ -1,3 +1,6 @@
 {
-    "python.pythonPath": "/Users/dingjie/anaconda3/envs/ADL/bin/python"
+
+    "python.pythonPath": "/home/neo/anaconda3/envs/ADL/bin/python",
+    "files.autoGuessEncoding": true
+
 }

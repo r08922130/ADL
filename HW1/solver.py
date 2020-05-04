@@ -187,7 +187,7 @@ class Solver:
             self.plot(x_train,loss_train,x_val,loss_val)
             #torch.save(best_model.state_dict(), "ckpt/best.ckpt")
             seq_model = best_model
-    def test(self,seq_model,batches,interval,output_file,device,mode='test',model='m1',threshold=0.8):
+    def test(self,seq_model,batches,interval,b_ids,output_file,device,mode='test',model='m1',threshold=0.8):
         result = []
         post = Postprocessing()
         n = 0
@@ -195,7 +195,7 @@ class Solver:
         result_hist = []
         l = len(batches)
         for i in range(l):
-            
+            ids = b_ids[i]
             data = torch.LongTensor(batches[i]).to(device)
             if model == 'm1':
                 data = data.permute(1,0)
@@ -217,7 +217,7 @@ class Solver:
                 #print(pred[2])
                 #print(pred[3])
             #print(pred.size())
-            result_dict,result_hist,n = post.select_sentence(pred.cpu().numpy(),interval[i],result_dict,result_hist,n,mode=mode,model=model)
+            result_dict,result_hist,n = post.select_sentence2(pred.cpu().numpy(),interval[i],ids,result_dict,result_hist,n,mode=mode,model=model)
             
             #print(pred.size())
         # show relative location

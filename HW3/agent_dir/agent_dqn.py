@@ -5,7 +5,7 @@ import torch
 import torch.nn.functional as F
 import torch.optim as optim
 import torch.nn as nn
-
+import copy
 from agent_dir.agent import Agent
 from environment import Environment
 
@@ -36,8 +36,15 @@ class DQN(nn.Module):
         q = self.head(x)
         return q
 
+class Transition:
+        def __init__(self, state, action, reward, next_state):
+            self.state = state
+            self.action = action
+            self.reward = reward
+            self.next_state = next_state
 
 class AgentDQN(Agent):
+    
     def __init__(self, env, args):
         self.env = env
         self.input_channels = 4
@@ -71,9 +78,10 @@ class AgentDQN(Agent):
         self.steps = 0 # num. of passed steps
 
         # TODO: initialize your replay buffer
-        self.epsilon = 0
         self.replay = []
-
+        self.epsilon = 0.05
+    
+    
     def save(self, save_path):
         print('save model to', save_path)
         torch.save(self.online_net.state_dict(), save_path + '_online.cpt')
@@ -98,9 +106,9 @@ class AgentDQN(Agent):
         # Implement epsilon-greedy to decide whether you want to randomly select
         # an action or not.
         # HINT: You may need to use and self.steps
-        probs = self.target_net(state)
+        probs = self.online_net(state)
         p = random.random()
-        if p < self.epsilon:
+        if p < 1-self.epsilon:
             prob, action = probs.topk(1)
             action = action[0].item()
         else:
@@ -122,7 +130,36 @@ class AgentDQN(Agent):
         # 1. You should not backprop to the target model in step 3 (Use torch.no_grad)
         # 2. You should carefully deal with gamma * max(Q(s_{t+1}, a)) when it
         #    is the terminal state.
+        trans = random.choices(self.replay,k=self.batch_size)
+        Q, Q_hat, rewards = torch.tensor([]), torch.tensor([]), torch.tensor([])
+        idx = torch.LongTensor([])
+        for tran in trans:
+            Q = torch.cat((Q,tran.state))
+            idx = torch.cat((idx, torch.LongTensor([tran.action])))
+            """probs = self.online_net(tran.state)
+            Q = torch.cat((Q,probs[:,tran.action]))"""
+            rewards = torch.cat((rewards, torch.tensor([tran.reward])))
+            Q_hat = torch.cat((Q_hat,tran.next_state))
+            #probs = self.target_net(tran.next_state).squeeze(0)
+            #Q_hat = torch.cat((Q_hat,probs.topk(1)[0]))
+        probs = self.online_net(Q)
+        #print(probs)
+        Q = probs[:,idx]
+        #print(Q)
+        with torch.no_grad():
+            probs = self.target_net(Q_hat)
+            Q_hat = probs.topk(1)[0]
+            #print(probs)
+            #print(Q_hat)
 
+        #print(Q)
+        #print(Q_hat)
+        values = rewards + self.GAMMA * Q_hat
+        loss = torch.mean((values - Q)**2) 
+        #print(loss)
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
         return loss.item()
 
     def train(self):
@@ -145,7 +182,11 @@ class AgentDQN(Agent):
                 next_state = torch.from_numpy(next_state).permute(2,0,1).unsqueeze(0)
 
                 # TODO: store the transition in memory
-
+                tran = Transition(state, action, reward, next_state)
+                
+                self.replay.append(tran)
+                
+                self.replay = self.replay[-self.buffer_size:]
                 # move to the next state
                 state = next_state
 
@@ -155,7 +196,7 @@ class AgentDQN(Agent):
 
                 # TODO: update target network
                 if self.steps > self.learning_start and self.steps % self.target_update_freq == 0:
-                    pass
+                    self.target_net.load_state_dict(copy.deepcopy(self.online_net.state_dict()))
 
                 # save the model
                 if self.steps % self.save_freq == 0:

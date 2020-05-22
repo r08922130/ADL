@@ -49,7 +49,7 @@ class Postprocessing:
         for batch_ids ,batch in zip(ids,sentences):
             for data_id ,sentence in zip(batch_ids,batch):
                 s = self.removeAfterEOS(sentence)
-                result = tokenizer.decode(s).replace(' £ 1 m','').replace(' £','')
+                result = tokenizer.decode(s)#.replace(' £ 1 m','').replace(' £','')
                 if len(result) > 0 and result[-1] != '.':
                     result+= ' .'
                 result+= ' \n'

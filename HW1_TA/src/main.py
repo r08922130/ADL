@@ -4,7 +4,7 @@ import torch.nn as nn
 import sys
 from model import S2S
 import os
-from solver import Solver
+from solver_dqn import Solver
 import json
 import pickle
 from dataset import SeqTaggingDataset
@@ -14,7 +14,13 @@ from utils import Tokenizer
 import preprocess_seq2seq
 
 if __name__ == "__main__":
-    
+    tokenizer = None
+    with open( 'datasets/seq2seq/config.json') as f:
+        print("Load Config.......")
+        config = json.load(f)
+        tokenizer = Tokenizer(lower=config['lower_case'])
+    #print(tokenizer)
+    solver = Solver(tokenizer=tokenizer)
     arg = sys.argv
     solver = Solver()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -26,7 +32,8 @@ if __name__ == "__main__":
             valid = pickle.load(f)
         with open("datasets/seq2seq/embedding.pkl", 'rb') as f:
             embedding = pickle.load(f)
-        
+        tokenizer.set_vocab(embedding.vocab)
+        solver.tokenizer = tokenizer
         batch_size = int(arg[2])
         t_l = len(train)
         if t_l%batch_size==0:    
@@ -59,17 +66,18 @@ if __name__ == "__main__":
         attention = True if arg[4] == 'A' else False
         mymodel = S2S(emb_w.size(0),emb_w.size(1),256,len(emb_w),device,layer=int(arg[5]),attention=attention).to(device)
         mymodel.embedding.from_pretrained(emb_w)
-        """if arg[4] == 'pre':
-            mymodel.load_state_dict(torch.load("ckpt/best.ckpt"))"""
-        #mymodel.load_state_dict(torch.load("ckpt/best.ckpt"))
+        if arg[6] == 'pre':
+            mymodel.load_state_dict(torch.load("seq2seq_att.ckpt"))
+            print("Load pre-trained model")
+        #mymodel.load_state_dict(torch.load("tan_ckpt/best.ckpt"))
 
-        solver.train(mymodel,train_batches,valid_batches,attention=attention,batch_size=batch_size,device=device,epoch=int(arg[3]))
+        solver.train(mymodel,train_batches,valid_batches,attention=attention,batch_size=batch_size,device=device,epoch=int(arg[3]),w_RL=float(arg[7]))
     else:
         with open("datasets/seq2seq/embedding.pkl", 'rb') as f:
             embedding = pickle.load(f)
         emb_w = embedding.vectors
         vocab = embedding.vocab
-        print(len(vocab))
+        print(arg[5])
         attention = True if arg[3] == 'A' else False
         with open( 'datasets/seq2seq/config.json') as f:
             print("Load Config.......")
@@ -112,9 +120,12 @@ if __name__ == "__main__":
         mymodel.embedding.from_pretrained(emb_w)
         if os.path.isfile(arg[4]):
             mymodel.load_state_dict(torch.load(arg[4],map_location= device))
+        else:
+            print("Model File Not Found.")
         #solver.test
         #result,ids = solver.test(mymodel,data_batches,device,tokenizer,attention=attention,batch_size=batch_size,mode=mode)
-        result,ids = solver.test_beam_search(mymodel,data_batches,device,tokenizer,beam_size=1,attention=attention,batch_size=batch_size,mode=mode)
+        with torch.no_grad():
+            result,ids = solver.test_beam_search(mymodel,data_batches,device,tokenizer,beam_size=1,attention=attention,batch_size=batch_size,mode=mode)
 
         post = Postprocessing()
         dict_result = []

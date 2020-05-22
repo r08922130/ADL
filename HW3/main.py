@@ -38,6 +38,7 @@ def run(args):
 
     if args.train_dqn:
         env_name = args.env_name or 'MsPacmanNoFrameskip-v0'
+        #disable clip reward
         env = Environment(env_name, args, atari_wrapper=True)
         from agent_dir.agent_dqn import AgentDQN
         agent = AgentDQN(env, args)

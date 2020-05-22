@@ -5,7 +5,7 @@ import torch.nn.functional as F
 from torch.distributions.categorical import Categorical
 from agent_dir.agent import Agent
 from environment import Environment
-
+from logger import Logger
 class PolicyNet(nn.Module):
     def __init__(self, state_dim, action_num, hidden_dim):
         super(PolicyNet, self).__init__()
@@ -25,7 +25,7 @@ class AgentPG(Agent):
                                action_num= self.env.action_space.n,
                                hidden_dim=64)
         if args.test_pg:
-            self.load('pg.cpt')
+            self.load('best/pg.cpt')
 
         # discounted reward
         self.gamma = 0.99
@@ -41,6 +41,8 @@ class AgentPG(Agent):
         self.rewards, self.saved_actions = [], []
         self.action_probs = torch.tensor([])
 
+        #logger
+        self.logger = Logger('pg')
 
     def save(self, save_path):
         print('save model to', save_path)
@@ -59,13 +61,18 @@ class AgentPG(Agent):
         # Use your model to output distribution over actions and sample from it.
         # HINT: torch.distributions.Categorical
         #print(torch.tensor(state).unsqueeze(0))
-        prob = self.model(torch.tensor(state).unsqueeze(0))
         
-        cate = Categorical(prob)
-        action = cate.sample()
+        prob = self.model(torch.tensor(state).unsqueeze(0))
+        if not test:
+            cate = Categorical(prob)
+            action = cate.sample()
+            self.action_probs = torch.cat((self.action_probs, cate.log_prob(action)))
+        else:
+            action = prob.topk(1)[1][0]
+            
         #print(cate.log_prob(action)[0])
         
-        self.action_probs = torch.cat((self.action_probs, cate.log_prob(action)))
+        
         #print(self.action_probs)
         #print(action)
         return action.numpy()[0]
@@ -90,6 +97,8 @@ class AgentPG(Agent):
         # loss = sum(-R_i * log(action_prob))
         R = torch.FloatTensor(R)
         #R = (R-R.mean())/(R.std()+np.finfo(np.float32).eps)
+
+        #variance reduction
         R = (R-R.mean())
         loss = torch.sum(-R* self.action_probs)
         self.optimizer.zero_grad()
@@ -119,6 +128,8 @@ class AgentPG(Agent):
             if epoch % self.display_freq == 0:
                 print('Epochs: %d/%d | Avg reward: %f '%
                        (epoch, self.num_episodes, avg_reward))
+            self.logger.write('Epochs: %d/%d | Avg reward: %f \n'%
+                    (epoch, self.num_episodes, avg_reward))
 
             if avg_reward > 50: # to pass baseline, avg. reward > 50 is enough.
                 self.save('pg.cpt')

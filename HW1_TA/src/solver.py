@@ -6,21 +6,21 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
 from postprocessing import Postprocessing
-import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
+#import matplotlib.pyplot as plt
+#import matplotlib.ticker as ticker
 class Solver:
     def __init__(self):
         super().__init__()
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    def plot(self,x,y,x_val,y_val,epoch):
+    """def plot(self,x,y,x_val,y_val,epoch):
         plt.figure()
         plt.plot(x,y,"r",x_val,y_val,"b")
-        plt.savefig("Epoch_{}.jpg".format(epoch))
+        plt.savefig("Epoch_{}.jpg".format(epoch))"""
     def train(self,seq_model,batches,valid_batches,device,attention=False,mode='abstractive',
-                batch_size = 16,epoch=10,lr=0.001,encoder=None,decoder=None):
+                batch_size = 16,epoch=10,lr=0.0001,encoder=None,decoder=None):
         min_loss = 100000000
         best_model = None
-        seq_opt=optim.Adam(seq_model.parameters(), lr=lr)
+        seq_opt=optim.RMSprop(seq_model.parameters(), lr=lr)
         scheduler = lr_scheduler.StepLR(seq_opt,step_size=1,gamma=0.7)
         step = 0
         x_train = []
@@ -167,21 +167,21 @@ class Solver:
                     min_loss =v_total_loss
                     #best_model = seq_model
                     torch.save(seq_model.state_dict(), "ckpt/best.ckpt")
-                """if  v_total_loss/v_bl - total_loss/t_bl > gap:
+                if  v_total_loss/v_bl - total_loss/t_bl > gap:
                     scheduler.step()
-                    gap += 0.1"""
+                    gap += 0.1
 
-                if ep %5 == 0:
-                    self.plot(x_train,loss_train,x_val,loss_val,epoch=ep)
+                #if ep %5 == 0:
+                    #self.plot(x_train,loss_train,x_val,loss_val,epoch=ep)
                     
-            self.plot(x_train,loss_train,x_val,loss_val,epoch=epoch)
+            #self.plot(x_train,loss_train,x_val,loss_val,epoch=epoch)
             #seq_model = best_model
                     
     def findEOS(self,sample):
         for i,word in enumerate(sample):
             if word == 2:
                 return i
-    def showAttention(self,input_sentence, output_words, attentions,tokenizer,p,s):
+    """def showAttention(self,input_sentence, output_words, attentions,tokenizer,p,s):
         # Set up figure with colorbar
         fig = plt.figure(figsize=(18,9))
         ax = fig.add_subplot(111)
@@ -198,7 +198,7 @@ class Solver:
         ax.xaxis.set_major_locator(ticker.MultipleLocator(1))
         ax.yaxis.set_major_locator(ticker.MultipleLocator(1))
 
-        plt.savefig(f'{p}*128_{s}_att.png')
+        plt.savefig(f'{p}*128_{s}_att.png')"""
     def test(self,seq_model,batches,device,tokenizer,attention=False,batch_size=16,mode='test'):
 
         result = []
@@ -210,7 +210,7 @@ class Solver:
 
         seq_model.eval()
         max_len = 30
-        if attention:
+        """if attention:
             for i in range(4):
                 print(i)
 
@@ -241,8 +241,8 @@ class Solver:
                     if topi.item() == 2:
                         break
                     #print(result.size())
-                    """if topi.item == 2:
-                        break"""
+                    if topi.item == 2:
+                        break
                     
                     #result += [topi.item()]
                 print(result.size())
@@ -251,7 +251,7 @@ class Solver:
 
                 #print(sample)
                 #print(result)
-                self.showAttention(sample,result,atts,tokenizer,p_batch[i],sen[i])
+                self.showAttention(sample,result,atts,tokenizer,p_batch[i],sen[i])"""
         for i,batch in enumerate(batches):
             
             bs = batch['text'].size(0)
